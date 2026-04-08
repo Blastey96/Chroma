@@ -181,22 +181,29 @@ CHROMA
 </button>
 </div>
 <div class="flex items-center gap-6 border-l border-white/10 pl-6">
-<div class="flex flex-col w-28">
-<div class="flex justify-between text-[9px] uppercase text-gray-500 font-bold mb-1">
-<span>Size</span><span id="sizeVal">30px</span>
+<div class="flex flex-col w-32">
+<div class="flex justify-between items-center text-[9px] uppercase text-gray-500 font-bold mb-1">
+    <div class="flex items-center gap-2">
+        <span>Size</span>
+        <button id="btn-pressure-size" onclick="togglePressureSize()" class="text-[10px] text-gray-500 hover:text-[#D38E3F] transition-colors" title="Toggle Pen Pressure Size">
+            <i class="fas fa-compress-arrows-alt"></i>
+        </button>
+    </div>
+    <span id="sizeVal">30px</span>
 </div>
 <input type="range" id="sizeSlider" min="1" max="300" value="30">
 </div>
-<div class="flex flex-col w-32">
-<div class="flex justify-between text-[9px] uppercase text-gray-500 font-bold mb-1">
-<span>Brush Opacity</span><span id="opacityVal">100%</span>
+<div class="flex flex-col w-36">
+<div class="flex justify-between items-center text-[9px] uppercase text-gray-500 font-bold mb-1">
+    <div class="flex items-center gap-2">
+        <span>Brush Opacity</span>
+        <button id="btn-pressure" onclick="togglePressure()" class="text-[10px] text-gray-500 hover:text-[#D38E3F] transition-colors" title="Toggle Pen Pressure Opacity">
+            <i class="fas fa-fingerprint"></i>
+        </button>
+    </div>
+    <span id="opacityVal">100%</span>
 </div>
-<div class="flex items-center gap-2">
-<input type="range" id="opacitySlider" min="1" max="100" value="100" class="flex-1">
-<button id="btn-pressure" onclick="togglePressure()" class="text-[10px] text-gray-500 hover:text-[#D38E3F] transition-colors" title="Toggle Pen Pressure Opacity">
-<i class="fas fa-fingerprint"></i>
-</button>
-</div>
+<input type="range" id="opacitySlider" min="1" max="100" value="100">
 </div>
 </div>
 </div>
@@ -436,6 +443,7 @@ let isSpaceDown = false;
 let isPanning = false;
 let panMouseX = 0, panMouseY = 0;
 let usePressure = false;
+let usePressureSize = false; 
 let isTransforming = false;
 let hoveredHandle = null;
 let transformState = { x: 0, y: 0, width: 0, height: 0, scale: 1, rotation: 0, originalCanvas: null, activeHandle: null, startMouse: null, initialState: null };
@@ -493,8 +501,8 @@ window.addEventListener('pointerup', stop);
 window.addEventListener('pointercancel', stop);
 stack.addEventListener('mouseenter', () => { if (!isSpaceDown) cursorCanvas.style.opacity = 1; });
 stack.addEventListener('mouseleave', () => {
-curCtx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
-cursorCanvas.style.opacity = 0;
+    curCtx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
+    cursorCanvas.style.opacity = 0;
 });
 window.addEventListener('keydown', handleKeys);
 window.addEventListener('keyup', (e) => {
@@ -507,7 +515,6 @@ cursorCanvas.style.opacity = 1;
 }
 });
 
-// Intercept browser zoom wheel
 window.addEventListener('wheel', (e) => {
     if (e.ctrlKey) {
         e.preventDefault();
@@ -531,7 +538,6 @@ finalizeColor();
 window.addEventListener('pointermove', onGlobalReorderMove);
 window.addEventListener('pointerup', onGlobalReorderUp);
 
-// Start Marching Ants Animation loop
 function animateMarchingAnts() {
     selectionDashOffset = (selectionDashOffset + 0.4) % 16;
     if (activeSelectionPoints.length > 0 || isPainting || mode === 'lasso') {
@@ -689,6 +695,13 @@ btn.classList.toggle('text-[#D38E3F]', usePressure);
 btn.classList.toggle('text-gray-500', !usePressure);
 }
 
+function togglePressureSize() {
+    usePressureSize = !usePressureSize;
+    const btn = document.getElementById('btn-pressure-size');
+    btn.classList.toggle('text-[#D38E3F]', usePressureSize);
+    btn.classList.toggle('text-gray-500', !usePressureSize);
+}
+
 function setActiveColorTarget(target) {
     activeColorTarget = target;
     colorPreview.classList.toggle('color-preview-active', target === 'primary');
@@ -766,7 +779,6 @@ return;
 
 const keyLow = e.key.toLowerCase();
 
-// Block Browser Zoom, Reset, and Save
 if (e.ctrlKey) {
     if (e.key === '=' || e.key === '+' || e.key === '-' || e.key === '0' || keyLow === 's') {
         e.preventDefault();
@@ -1333,26 +1345,39 @@ return `rgb(${Math.round(f(5) * 255)},${Math.round(f(3) * 255)},${Math.round(f(1
 function draw(e) {
 const pos = getPos(e);
 const layer = layers[activeIdx]; if (!layer || !layer.visible) return;
-let finalOpacity = opacity; if (usePressure && e.pressure !== undefined && e.pressure > 0) finalOpacity *= e.pressure;
-const spacingPx = Math.max(1, brushSize * brushSettings.spacing);
+
+// Dynamic Pressure Calculations
+let finalOpacity = opacity; 
+if (usePressure && e.pressure !== undefined && e.pressure > 0) finalOpacity *= e.pressure;
+
+let finalBrushSize = brushSize;
+if (usePressureSize && e.pressure !== undefined && e.pressure > 0) finalBrushSize *= e.pressure;
+
+const spacingPx = Math.max(1, finalBrushSize * brushSettings.spacing);
 const dist = Math.hypot(pos.x - lastX, pos.y - lastY);
 brushSettings.distSinceLastDab += dist;
+
 while (brushSettings.distSinceLastDab >= spacingPx) {
 const ratio = (spacingPx - (brushSettings.distSinceLastDab - dist)) / dist;
 const dabX = lastX + (pos.x - lastX) * (isNaN(ratio) ? 1 : ratio);
 const dabY = lastY + (pos.y - lastY) * (isNaN(ratio) ? 1 : ratio);
 let renderX = dabX, renderY = dabY;
-if (brushSettings.scatter > 0) { renderX += (Math.random() - 0.5) * brushSettings.scatter * brushSize; renderY += (Math.random() - 0.5) * brushSettings.scatter * brushSize; }
+if (brushSettings.scatter > 0) { renderX += (Math.random() - 0.5) * brushSettings.scatter * finalBrushSize; renderY += (Math.random() - 0.5) * brushSettings.scatter * finalBrushSize; }
 let dH = brushSettings.strokeHueOffset, dS = brushSettings.strokeSatOffset, dV = brushSettings.strokeBriOffset;
 if (brushSettings.jitterMode === 'tip') { dH = (Math.random() - 0.5) * brushSettings.hueJitter * 360; dS = (Math.random() - 0.5) * brushSettings.satJitter * 100; dV = (Math.random() - 0.5) * brushSettings.briJitter * 100; }
+
 if (mode === 'smudge' && smudgeBuffer) {
 activeStrokeCtx.save();
 activeStrokeCtx.globalAlpha = finalOpacity * brushSettings.flow;
-activeStrokeCtx.drawImage(smudgeBuffer, renderX - brushSize/2, renderY - brushSize/2, brushSize, brushSize);
+applySelectionMask(activeStrokeCtx);
+activeStrokeCtx.drawImage(smudgeBuffer, renderX - finalBrushSize/2, renderY - finalBrushSize/2, finalBrushSize, finalBrushSize);
 activeStrokeCtx.restore();
 } else {
 const dabColor = (mode === 'eraser') ? 'rgb(255,255,255)' : getEngineColor(curH + dH, curS + dS, curV + dV);
-renderDab(activeStrokeCtx, renderX, renderY, brushSize, dabColor, brushSettings.hardness, finalOpacity * brushSettings.flow);
+activeStrokeCtx.save();
+applySelectionMask(activeStrokeCtx);
+renderDab(activeStrokeCtx, renderX, renderY, finalBrushSize, dabColor, brushSettings.hardness, finalOpacity * brushSettings.flow);
+activeStrokeCtx.restore();
 }
 brushSettings.distSinceLastDab -= spacingPx; brushSettings.lastDabX = dabX; brushSettings.lastDabY = dabY;
 }
@@ -1415,7 +1440,7 @@ let x = e.clientX - (rect.left + rect.width / 2), y = e.clientY - (rect.top + re
 const rad = -(rotation * Math.PI) / 180;
 let rotX = x * Math.cos(rad) - y * Math.sin(rad), rotY = x * Math.sin(rad) + y * Math.cos(rad);
 if (flipH) rotX = -rotX;
-const factor = INTERNAL_RES / (rect.width);
+const factor = INTERNAL_RES / (800 * zoom);
 return { x: rotX * factor + INTERNAL_RES/2, y: rotY * factor + INTERNAL_RES/2, rawX: e.clientX, rawY: e.clientY };
 }
 
