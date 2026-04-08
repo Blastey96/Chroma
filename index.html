@@ -1,910 +1,1210 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chroma | Professional Painting Suite</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <style>
-        body { background-color: #0a0a0a; color: #e0e0e0; font-family: 'Inter', sans-serif; overflow: hidden; margin: 0; user-select: none; }
-        .ui-panel { background: rgba(20, 20, 20, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); }
-        .canvas-container { background-image: radial-gradient(#222 1px, transparent 1px); background-size: 20px 20px; background-color: #050505; }
-        #canvasStack {
-            position: relative;
-            box-shadow: 0 0 50px rgba(0,0,0,0.5);
-            background: white;
-            cursor: none;
-            line-height: 0;
-            transition: transform 0.1s ease-out;
-            transform-origin: center center;
-            touch-action: none;
-        }
-        #displayCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
-        /* Hidden buffer for active stroke to ensure seamless blending/erasing in renderStack */
-        #activeStrokeCanvas { display: none; }
-        .layer-canvas { display: none; }
-        input[type="range"] { accent-color: #D38E3F; cursor: pointer; }
-        .layer-item.active { background: rgba(211, 142, 63, 0.1); border: 1px solid rgba(211, 142, 63, 0.4); }
-        .layer-item.dragging-visual {
-            background: rgba(211, 142, 63, 0.2) !important;
-            border: 1px solid #D38E3F !important;
-            opacity: 0.8;
-        }
-        .tool-btn.active { color: #D38E3F; background: rgba(211, 142, 63, 0.1); box-shadow: 0 0 15px rgba(211, 142, 63, 0.2); }
-        #hsvBox { background: linear-gradient(to bottom, transparent, #000), linear-gradient(to right, #fff, transparent); }
-        #hueBar { appearance: none; background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f0f); height: 8px; border-radius: 4px; }
-        #hueBar::-webkit-slider-thumb { appearance: none; width: 12px; height: 12px; background: white; border-radius: 50%; cursor: pointer; border: 1px solid #000; }
-        .draggable-panel { position: absolute; z-index: 2000; cursor: default; }
-        .panel-header { cursor: move; }
-        #cursorCanvas { pointer-events: none; z-index: 6000; position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; }
-        .clipping-indent { margin-left: 12px; border-left: 2px solid #D38E3F; padding-left: 8px; }
-        .hsb-track { height: 6px; border-radius: 3px; appearance: none; background: #333; margin: 8px 0; width: 100%; }
-        .hsb-track::-webkit-slider-thumb { appearance: none; width: 12px; height: 12px; background: #eee; border-radius: 50%; cursor: pointer; }
-        select { background: #1a1a1a; color: #ccc; border: 1px solid #333; font-size: 9px; padding: 2px 4px; border-radius: 4px; outline: none; }
-        select:focus { border-color: #D38E3F; }
-       
-        .layer-opacity-slider {
-            height: 4px;
-            width: 100%;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chroma | Professional Painting Suite</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+:root {
+    --bg-main: #0a0a0a;
+    --bg-panel: rgba(20, 20, 20, 0.95);
+    --bg-canvas-container: #050505;
+    --text-main: #e0e0e0;
+    --text-dim: #9ca3af; /* gray-400 */
+    --text-header: #6b7280; /* gray-500 */
+    --border-color: rgba(255, 255, 255, 0.05);
+    --input-bg: #1a1a1a;
+    --input-border: #333;
+    --item-hover: rgba(255, 255, 255, 0.05);
+    --dot-color: #222;
+}
+
+body.light-mode {
+    --bg-main: #f0f0f0;
+    --bg-panel: rgba(235, 235, 235, 0.98);
+    --bg-canvas-container: #d6d6d6;
+    --text-main: #1a1a1a;
+    --text-dim: #4b5563; /* gray-600 */
+    --text-header: #374151; /* gray-700 */
+    --border-color: rgba(0, 0, 0, 0.1);
+    --input-bg: #ebebeb;
+    --input-border: #ccc;
+    --item-hover: rgba(0, 0, 0, 0.05);
+    --dot-color: #bbb;
+}
+
+body { background-color: var(--bg-main); color: var(--text-main); font-family: 'Inter', sans-serif; overflow: hidden; margin: 0; user-select: none; transition: background-color 0.3s ease, color 0.3s ease; }
+.ui-panel { background: var(--bg-panel); backdrop-filter: blur(20px); border: 1px solid var(--border-color); }
+.canvas-container { background-image: radial-gradient(var(--dot-color) 1px, transparent 1px); background-size: 20px 20px; background-color: var(--bg-canvas-container); }
+#canvasStack {
+position: relative;
+box-shadow: 0 0 50px rgba(0,0,0,0.5);
+background: white;
+cursor: none;
+line-height: 0;
+transition: transform 0.1s ease-out;
+transform-origin: center center;
+touch-action: none;
+}
+#displayCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+#activeStrokeCanvas { display: none; }
+.layer-canvas { display: none; }
+input[type="range"] { accent-color: #D38E3F; cursor: pointer; }
+.layer-item.active { background: rgba(211, 142, 63, 0.1); border: 1px solid rgba(211, 142, 63, 0.4); }
+.layer-item.dragging-visual {
+background: rgba(211, 142, 63, 0.2) !important;
+border: 1px solid #D38E3F !important;
+opacity: 0.8;
+}
+.tool-btn.active { color: #D38E3F; background: rgba(211, 142, 63, 0.1); box-shadow: 0 0 15px rgba(211, 142, 63, 0.2); }
+#hsvBox { background: linear-gradient(to bottom, transparent, #000), linear-gradient(to right, #fff, transparent); }
+#hueBar { appearance: none; background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f0f); height: 8px; border-radius: 4px; }
+#hueBar::-webkit-slider-thumb { appearance: none; width: 12px; height: 12px; background: white; border-radius: 50%; cursor: pointer; border: 1px solid #000; }
+.draggable-panel { position: absolute; z-index: 2000; cursor: default; }
+.panel-header { cursor: move; }
+#cursorCanvas { pointer-events: none; z-index: 6000; position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; }
+.clipping-indent { margin-left: 12px; border-left: 2px solid #D38E3F; padding-left: 8px; }
+.hsb-track { height: 6px; border-radius: 3px; appearance: none; background: var(--input-border); margin: 8px 0; width: 100%; }
+.hsb-track::-webkit-slider-thumb { appearance: none; width: 12px; height: 12px; background: var(--text-main); border-radius: 50%; cursor: pointer; }
+select { background: var(--input-bg); color: var(--text-main); border: 1px solid var(--input-border); font-size: 9px; padding: 2px 4px; border-radius: 4px; outline: none; }
+select:focus { border-color: #D38E3F; }
+.layer-opacity-slider { height: 4px; width: 100%; }
+
+/* UI overrides for light mode text */
+.light-mode .text-gray-500 { color: var(--text-header); }
+.light-mode .text-gray-400 { color: var(--text-dim); }
+.light-mode .text-gray-600 { color: var(--text-main); }
+</style>
 </head>
 <body class="flex flex-col h-screen">
+<!-- HEADER -->
+<header class="h-14 ui-panel flex items-center px-6 justify-between z-50 border-b">
+<div class="flex items-center gap-8">
+<h1 class="text-[11px] font-black tracking-[0.4em] text-[#D38E3F] uppercase flex items-center gap-2">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="transform: rotate(45deg);">
+<rect x="10.5" y="16" width="3" height="7" rx="1" />
+<rect x="11.5" y="10" width="1" height="6" />
+<path d="M12 1L8 6L12 11L16 6Z" />
+</svg>
+CHROMA
+</h1>
+<div class="flex items-center gap-1">
+    <button onclick="undo()" class="p-2 text-gray-400 hover:text-[#D38E3F] transition-colors" title="Undo (Ctrl+Z)">
+        <i class="fas fa-undo-alt"></i>
+    </button>
+    <button onclick="redo()" class="p-2 text-gray-400 hover:text-[#D38E3F] transition-colors" title="Redo (Ctrl+Shift+Z)">
+        <i class="fas fa-redo-alt"></i>
+    </button>
+</div>
+<div class="flex items-center gap-4 border-l border-white/10 pl-6 h-8">
+<div class="flex items-center gap-1 bg-black/5 dark:bg-white/5 rounded-lg p-1">
+<button onclick="changeZoom(-0.1)" class="w-8 h-6 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 rounded"><i class="fas fa-minus text-[10px]"></i></button>
+<span id="zoomVal" class="text-[10px] font-mono w-10 text-center">100%</span>
+<button onclick="changeZoom(0.1)" class="w-8 h-6 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 rounded"><i class="fas fa-plus text-[10px]"></i></button>
+</div>
+<div class="flex items-center gap-1 bg-black/5 dark:bg-white/5 rounded-lg p-1">
+<button onclick="changeRotate(-15)" class="w-8 h-6 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 rounded"><i class="fas fa-undo text-[10px]"></i></button>
+<span id="rotateVal" class="text-[10px] font-mono w-10 text-center">0°</span>
+<button onclick="changeRotate(15)" class="w-8 h-6 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 rounded"><i class="fas fa-redo text-[10px]"></i></button>
+</div>
+<button onclick="toggleFlip()" class="bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 w-8 h-8 rounded-lg flex items-center justify-center transition-all">
+<i class="fas fa-arrows-alt-h text-[12px]"></i>
+</button>
+</div>
+<div class="flex items-center gap-6 border-l border-white/10 pl-6">
+<div class="flex flex-col w-28">
+<div class="flex justify-between text-[9px] uppercase text-gray-500 font-bold mb-1">
+<span>Size</span><span id="sizeVal">30px</span>
+</div>
+<input type="range" id="sizeSlider" min="1" max="300" value="30">
+</div>
+<div class="flex flex-col w-32">
+<div class="flex justify-between text-[9px] uppercase text-gray-500 font-bold mb-1">
+<span>Brush Opacity</span><span id="opacityVal">100%</span>
+</div>
+<div class="flex items-center gap-2">
+<input type="range" id="opacitySlider" min="1" max="100" value="100" class="flex-1">
+<button id="btn-pressure" onclick="togglePressure()" class="text-[10px] text-gray-500 hover:text-[#D38E3F] transition-colors" title="Toggle Pen Pressure Opacity">
+<i class="fas fa-fingerprint"></i>
+</button>
+</div>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button id="themeToggle" onclick="toggleTheme()" class="p-2 text-gray-400 hover:text-[#D38E3F] transition-colors" title="Toggle Light/Dark Mode">
+    <i class="fas fa-moon"></i>
+</button>
+<button onclick="exportCanvas()" class="ml-4 bg-[#D38E3F] hover:bg-[#E49F50] text-white px-5 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all">Export Artwork</button>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden relative">
+<aside class="w-16 ui-panel flex flex-col items-center py-6 gap-6 border-r z-40">
+<button id="btn-brush" class="tool-btn active p-3 rounded-xl transition-all" onclick="setMode('brush')" title="Brush (B)"><i class="fas fa-paint-brush"></i></button>
+<button id="btn-bucket" class="tool-btn p-3 rounded-xl transition-all text-gray-500" onclick="setMode('bucket')" title="Paint Bucket (G)"><i class="fas fa-fill-drip"></i></button>
+<button id="btn-eraser" class="tool-btn p-3 rounded-xl transition-all text-gray-500" onclick="setMode('eraser')" title="Eraser (E)"><i class="fas fa-eraser"></i></button>
+<button id="btn-smudge" class="tool-btn p-3 rounded-xl transition-all text-gray-500" onclick="setMode('smudge')" title="Smudge (S)"><i class="fas fa-wind"></i></button>
+<div class="w-8 h-px bg-black/10 dark:bg-white/10"></div>
+<button id="btn-tip-round" class="tool-btn active p-1.5 rounded-md text-[10px]" onclick="setBrushTip('round')"><i class="fas fa-circle"></i></button>
+<button id="btn-tip-flat" class="tool-btn p-1.5 rounded-md text-[10px] text-gray-500" onclick="setBrushTip('flat')"><i class="fas fa-square"></i></button>
+<button id="btn-brush-settings" class="tool-btn p-1.5 rounded-md text-[10px] text-gray-500" onclick="toggleBrushSettings()" title="Krita Brush Engine Settings"><i class="fas fa-cog"></i></button>
+<div class="w-8 h-px bg-black/10 dark:bg-white/10"></div>
+<div id="activeColorPreview" class="w-8 h-8 rounded-full border-2 border-white/20 shadow-lg" style="background-color: #D38E3F;"></div>
+</aside>
+<main id="viewport" class="flex-1 relative canvas-container flex items-center justify-center overflow-auto">
+<div id="canvasStack" style="width: 800px; height: 800px;">
+<canvas id="displayCanvas"></canvas>
+<canvas id="activeStrokeCanvas"></canvas>
+<canvas id="cursorCanvas"></canvas>
+</div>
 
-
-    <!-- HEADER -->
-    <header class="h-14 ui-panel flex items-center px-6 justify-between z-50 border-b border-white/5">
-        <div class="flex items-center gap-8">
-            <h1 class="text-[11px] font-black tracking-[0.4em] text-[#D38E3F] uppercase flex items-center gap-2">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="transform: rotate(45deg);">
-                    <rect x="10.5" y="16" width="3" height="7" rx="1" />
-                    <rect x="11.5" y="10" width="1" height="6" />
-                    <path d="M12 1L8 6L12 11L16 6Z" />
-                </svg>
-                CHROMA
-            </h1>
-            <div class="flex items-center gap-4 border-l border-white/10 pl-6 h-8">
-                <div class="flex items-center gap-1 bg-white/5 rounded-lg p-1">
-                    <button onclick="changeZoom(-0.1)" class="w-8 h-6 flex items-center justify-center hover:bg-white/10 rounded"><i class="fas fa-minus text-[10px]"></i></button>
-                    <span id="zoomVal" class="text-[10px] font-mono w-10 text-center">100%</span>
-                    <button onclick="changeZoom(0.1)" class="w-8 h-6 flex items-center justify-center hover:bg-white/10 rounded"><i class="fas fa-plus text-[10px]"></i></button>
-                </div>
-                <div class="flex items-center gap-1 bg-white/5 rounded-lg p-1">
-                    <button onclick="changeRotate(-15)" class="w-8 h-6 flex items-center justify-center hover:bg-white/10 rounded"><i class="fas fa-undo text-[10px]"></i></button>
-                    <span id="rotateVal" class="text-[10px] font-mono w-10 text-center">0°</span>
-                    <button onclick="changeRotate(15)" class="w-8 h-6 flex items-center justify-center hover:bg-white/10 rounded"><i class="fas fa-redo text-[10px]"></i></button>
-                </div>
-                <button onclick="toggleFlip()" class="bg-white/5 hover:bg-white/10 w-8 h-8 rounded-lg flex items-center justify-center transition-all">
-                    <i class="fas fa-arrows-alt-h text-[12px]"></i>
-                </button>
-            </div>
-            <div class="flex items-center gap-6 border-l border-white/10 pl-6">
-                <div class="flex flex-col w-28">
-                    <div class="flex justify-between text-[9px] uppercase text-gray-500 font-bold mb-1">
-                        <span>Size</span><span id="sizeVal">30px</span>
-                    </div>
-                    <input type="range" id="sizeSlider" min="1" max="300" value="30">
-                </div>
-                <div class="flex flex-col w-32">
-                    <div class="flex justify-between text-[9px] uppercase text-gray-500 font-bold mb-1">
-                        <span>Brush Opacity</span><span id="opacityVal">100%</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <input type="range" id="opacitySlider" min="1" max="100" value="100" class="flex-1">
-                        <button id="btn-pressure" onclick="togglePressure()" class="text-[10px] text-gray-500 hover:text-[#D38E3F] transition-colors" title="Toggle Pen Pressure Opacity">
-                            <i class="fas fa-fingerprint"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
+<!-- BRUSH SETTINGS PANEL -->
+<div id="brushSettingsPanel" class="draggable-panel hidden left-20 top-20 w-72 ui-panel rounded-3xl p-5 shadow-2xl border">
+    <div class="panel-header flex justify-between items-center mb-4 text-[9px] font-bold uppercase text-[#D38E3F] tracking-wider">
+        <span>Brush Engine Settings</span>
+        <i class="fas fa-grip-lines"></i>
+    </div>
+    <div class="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+        <div>
+            <div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Spacing</span><span id="bs-spacing-val">10%</span></div>
+            <input type="range" id="bs-spacing" min="1" max="100" value="10" class="hsb-track">
         </div>
-        <div class="flex items-center gap-3">
-            <button onclick="undo()" class="p-2 text-gray-400 hover:text-white transition-colors" title="Undo (Ctrl+Z)"><i class="fas fa-undo-alt"></i></button>
-            <button onclick="exportCanvas()" class="ml-4 bg-[#D38E3F] hover:bg-[#E49F50] text-white px-5 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all">Export Artwork</button>
+        <div>
+            <div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Hardness</span><span id="bs-hardness-val">80%</span></div>
+            <input type="range" id="bs-hardness" min="0" max="100" value="80" class="hsb-track">
         </div>
-    </header>
-
-
-    <div class="flex flex-1 overflow-hidden relative">
-        <aside class="w-16 ui-panel flex flex-col items-center py-6 gap-6 border-r border-white/5 z-40">
-            <button id="btn-brush" class="tool-btn active p-3 rounded-xl transition-all" onclick="setMode('brush')" title="Brush (B)"><i class="fas fa-paint-brush"></i></button>
-            <button id="btn-bucket" class="tool-btn p-3 rounded-xl transition-all text-gray-500" onclick="setMode('bucket')" title="Paint Bucket (G)"><i class="fas fa-fill-drip"></i></button>
-            <button id="btn-eraser" class="tool-btn p-3 rounded-xl transition-all text-gray-500" onclick="setMode('eraser')" title="Eraser (E)"><i class="fas fa-eraser"></i></button>
-            <button id="btn-smudge" class="tool-btn p-3 rounded-xl transition-all text-gray-500" onclick="setMode('smudge')" title="Smudge (S)"><i class="fas fa-wind"></i></button>
-            <div class="w-8 h-px bg-white/10"></div>
-            <button id="btn-tip-round" class="tool-btn active p-1.5 rounded-md text-[10px]" onclick="setBrushTip('round')"><i class="fas fa-circle"></i></button>
-            <button id="btn-tip-flat" class="tool-btn p-1.5 rounded-md text-[10px] text-gray-500" onclick="setBrushTip('flat')"><i class="fas fa-square"></i></button>
-            <div class="w-8 h-px bg-white/10"></div>
-            <div id="activeColorPreview" class="w-8 h-8 rounded-full border-2 border-white/20 shadow-lg" style="background-color: #D38E3F;"></div>
-        </aside>
-
-
-        <main id="viewport" class="flex-1 relative canvas-container flex items-center justify-center overflow-auto">
-            <div id="canvasStack" style="width: 800px; height: 800px;">
-                <canvas id="displayCanvas"></canvas>
-                <canvas id="activeStrokeCanvas"></canvas>
-                <canvas id="cursorCanvas"></canvas>
-            </div>
-
-
-            <div id="colorPanel" class="draggable-panel left-8 bottom-8 w-64 ui-panel rounded-3xl p-5 shadow-2xl border border-white/10">
-                <div class="panel-header flex justify-between items-center mb-3 text-[9px] font-bold uppercase text-gray-500 tracking-wider">
-                    <span id="hexDisplay">#D38E3F</span>
-                    <i class="fas fa-grip-lines"></i>
+        <div>
+            <div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Flow</span><span id="bs-flow-val">100%</span></div>
+            <input type="range" id="bs-flow" min="1" max="100" value="100" class="hsb-track">
+        </div>
+        <div>
+            <div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Scatter</span><span id="bs-scatter-val">0%</span></div>
+            <input type="range" id="bs-scatter" min="0" max="200" value="0" class="hsb-track">
+        </div>
+        <div class="pt-2 border-t border-white/5">
+            <h4 class="text-[8px] uppercase font-black text-[#D38E3F] mb-3">Color Dynamics</h4>
+            <div class="space-y-3">
+                <div>
+                    <div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Hue Jitter</span><span id="bs-hueJitter-val">0%</span></div>
+                    <input type="range" id="bs-hueJitter" min="0" max="100" value="0" class="hsb-track">
                 </div>
-                <div id="hsvBox" class="relative w-full aspect-square rounded-xl mb-4 cursor-crosshair overflow-hidden">
-                    <div id="hsvPointer" class="absolute w-3 h-3 border-2 border-white rounded-full -translate-x-1/2 -translate-y-1/2 pointer-events-none shadow-md"></div>
+                <div>
+                    <div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Sat Jitter</span><span id="bs-satJitter-val">0%</span></div>
+                    <input type="range" id="bs-satJitter" min="0" max="100" value="0" class="hsb-track">
                 </div>
-                <input type="range" id="hueBar" min="0" max="360" value="200" class="w-full mb-4">
-                <div class="space-y-2 mt-2">
-                    <div class="flex flex-col">
-                        <div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Hue</span><span id="hLabel">200</span></div>
-                        <input type="range" id="slider-h" min="0" max="360" value="200" class="hsb-track">
-                    </div>
-                    <div class="flex flex-col">
-                        <div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Saturation</span><span id="sLabel">100%</span></div>
-                        <input type="range" id="slider-s" min="0" max="100" value="100" class="hsb-track">
-                    </div>
-                    <div class="flex flex-col">
-                        <div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Brightness</span><span id="vLabel">100%</span></div>
-                        <input type="range" id="slider-v" min="0" max="100" value="100" class="hsb-track">
-                    </div>
+                <div>
+                    <div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Value Jitter</span><span id="bs-briJitter-val">0%</span></div>
+                    <input type="range" id="bs-briJitter" min="0" max="100" value="0" class="hsb-track">
                 </div>
-            </div>
-        </main>
-
-
-        <aside class="w-80 ui-panel flex flex-col border-l border-white/5 z-40">
-            <div class="p-5 border-b border-white/5">
-                <h3 class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-4">Adjustments</h3>
-                <div class="grid grid-cols-2 gap-2">
-                    <button onclick="applyAdjustment('hsb')" class="bg-white/5 p-3 rounded-xl border border-white/5 hover:border-[#D38E3F] text-[9px] font-bold uppercase transition-all">Hue/Sat/Bri</button>
-                    <button onclick="applyAdjustment('balance')" class="bg-white/5 p-3 rounded-xl border border-white/5 hover:border-[#D38E3F] text-[9px] font-bold uppercase transition-all">Color Bal</button>
+                <div class="flex items-center justify-between pt-1">
+                    <span class="text-[8px] uppercase font-bold text-gray-500">Jitter Mode</span>
+                    <select id="bs-jitterMode" class="w-24 text-[8px]">
+                        <option value="tip">Per Tip</option>
+                        <option value="stroke">Per Stroke</option>
+                    </select>
                 </div>
-            </div>
-            <div class="flex-1 flex flex-col min-h-0">
-                <div class="p-5 flex items-center justify-between">
-                    <h3 class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">Layers</h3>
-                    <div class="flex gap-3 items-center">
-                        <button onclick="addLayer()" class="text-gray-400 hover:text-[#D38E3F] transition-colors" title="New Layer (Ctrl+N)">
-                            <i class="fas fa-plus-square"></i>
-                        </button>
-                        <button onclick="duplicateLayer()" class="text-gray-400 hover:text-[#D38E3F] transition-colors" title="Duplicate Layer (Ctrl+J)">
-                            <i class="fas fa-copy"></i>
-                        </button>
-                        <button onclick="mergeDown()" class="text-gray-400 hover:text-[#D38E3F] transition-colors" title="Merge Down (Ctrl+E)">
-                            <i class="fas fa-level-down-alt"></i>
-                        </button>
-                        <button onclick="triggerImageImport()" class="text-gray-400 hover:text-[#D38E3F] transition-colors" title="Import Image">
-                            <i class="fas fa-file-import"></i>
-                        </button>
-                        <button id="btn-transform" onclick="toggleTransform()" class="text-gray-400 hover:text-[#D38E3F] transition-colors" title="Transform (Ctrl+T)">
-                            <i class="fas fa-expand"></i>
-                        </button>
-                        <input type="file" id="imageInput" class="hidden" accept="image/*" onchange="handleImageImport(event)">
-                    </div>
-                </div>
-                <div id="layerList" class="px-3 space-y-1 overflow-y-auto flex-1 pb-4"></div>
-            </div>
-        </aside>
-
-
-        <div id="adjPanel" class="draggable-panel hidden top-20 right-80 w-72 ui-panel rounded-3xl p-6 shadow-2xl border border-white/10">
-            <div class="panel-header flex justify-between items-center mb-6 text-[10px] font-black text-[#D38E3F] uppercase tracking-widest">
-                <span id="adjTitle">Adjust</span>
-                <i class="fas fa-grip-lines"></i>
-            </div>
-            <div id="adjControls" class="space-y-6"></div>
-            <div class="flex gap-4 mt-8">
-                <button onclick="cancelAdj()" class="flex-1 py-3 text-[9px] font-bold uppercase text-gray-500 hover:text-white transition-colors">Cancel</button>
-                <button onclick="confirmAdj()" class="flex-1 py-3 bg-[#D38E3F] rounded-xl text-[9px] font-bold uppercase text-white">Apply</button>
             </div>
         </div>
     </div>
+    <button onclick="toggleBrushSettings()" class="mt-6 w-full py-2 bg-[#D38E3F] text-white text-[9px] font-bold uppercase rounded-lg">Close</button>
+</div>
 
+<div id="colorPanel" class="draggable-panel left-8 bottom-8 w-64 ui-panel rounded-3xl p-5 shadow-2xl border">
+<div class="panel-header flex justify-between items-center mb-3 text-[9px] font-bold uppercase text-gray-500 tracking-wider">
+<span id="hexDisplay">#D38E3F</span>
+<i class="fas fa-grip-lines"></i>
+</div>
+<div id="hsvBox" class="relative w-full aspect-square rounded-xl mb-4 cursor-crosshair overflow-hidden">
+<div id="hsvPointer" class="absolute w-3 h-3 border-2 border-white rounded-full -translate-x-1/2 -translate-y-1/2 pointer-events-none shadow-md"></div>
+</div>
+<input type="range" id="hueBar" min="0" max="360" value="32" class="w-full mb-4">
+<div class="space-y-2 mt-2">
+<div class="flex flex-col">
+<div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Hue</span><span id="hLabel">32</span></div>
+<input type="range" id="slider-h" min="0" max="360" value="32" class="hsb-track">
+</div>
+<div class="flex flex-col">
+<div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Saturation</span><span id="sLabel">70%</span></div>
+<input type="range" id="slider-s" min="0" max="100" value="70" class="hsb-track">
+</div>
+<div class="flex flex-col">
+<div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Brightness</span><span id="vLabel">83%</span></div>
+<input type="range" id="slider-v" min="0" max="100" value="83" class="hsb-track">
+</div>
+</div>
+</div>
+</main>
+<aside class="w-80 ui-panel flex flex-col border-l z-40">
+<div class="p-5 border-b">
+<h3 class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-4">Adjustments</h3>
+<div class="grid grid-cols-2 gap-2">
+<button onclick="applyAdjustment('hsb')" class="bg-black/5 dark:bg-white/5 p-3 rounded-xl border border-transparent hover:border-[#D38E3F] text-[9px] font-bold uppercase transition-all">Hue/Sat/Bri</button>
+<button onclick="applyAdjustment('balance')" class="bg-black/5 dark:bg-white/5 p-3 rounded-xl border border-transparent hover:border-[#D38E3F] text-[9px] font-bold uppercase transition-all">Color Bal</button>
+</div>
+</div>
+<div class="flex-1 flex flex-col min-h-0">
+<div class="p-5 flex items-center justify-between">
+<h3 class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">Layers</h3>
+<div class="flex gap-3 items-center">
+<button onclick="addLayer()" class="text-gray-400 hover:text-[#D38E3F] transition-colors" title="New Layer (Ctrl+N)">
+<i class="fas fa-plus-square"></i>
+</button>
+<button onclick="duplicateLayer()" class="text-gray-400 hover:text-[#D38E3F] transition-colors" title="Duplicate Layer (Ctrl+J)">
+<i class="fas fa-copy"></i>
+</button>
+<button onclick="mergeDown()" class="text-gray-400 hover:text-[#D38E3F] transition-colors" title="Merge Down (Ctrl+E)">
+<i class="fas fa-level-down-alt"></i>
+</button>
+<button onclick="triggerImageImport()" class="text-gray-400 hover:text-[#D38E3F] transition-colors" title="Import Image">
+<i class="fas fa-file-import"></i>
+</button>
+<button id="btn-transform" onclick="toggleTransform()" class="text-gray-400 hover:text-[#D38E3F] transition-colors" title="Transform (Ctrl+T)">
+<i class="fas fa-expand"></i>
+</button>
+<input type="file" id="imageInput" class="hidden" accept="image/*" onchange="handleImageImport(event)">
+</div>
+</div>
+<div id="layerList" class="px-3 space-y-1 overflow-y-auto flex-1 pb-4"></div>
+</div>
+</aside>
+<div id="adjPanel" class="draggable-panel hidden top-20 right-80 w-72 ui-panel rounded-3xl p-6 shadow-2xl border">
+<div class="panel-header flex justify-between items-center mb-6 text-[10px] font-black text-[#D38E3F] uppercase tracking-widest">
+<span id="adjTitle">Adjust</span>
+<i class="fas fa-grip-lines"></i>
+</div>
+<div id="adjControls" class="space-y-6"></div>
+<div class="flex gap-4 mt-8">
+<button onclick="cancelAdj()" class="flex-1 py-3 text-[9px] font-bold uppercase text-gray-500 hover:text-[#D38E3F] transition-colors">Cancel</button>
+<button onclick="confirmAdj()" class="flex-1 py-3 bg-[#D38E3F] rounded-xl text-[9px] font-bold uppercase text-white">Apply</button>
+</div>
+</div>
+</div>
+<script>
+const viewport = document.getElementById('viewport');
+const stack = document.getElementById('canvasStack');
+const list = document.getElementById('layerList');
+const colorPreview = document.getElementById('activeColorPreview');
+const hexDisplay = document.getElementById('hexDisplay');
+const displayCanvas = document.getElementById('displayCanvas');
+const displayCtx = displayCanvas.getContext('2d');
+const activeStrokeCanvas = document.getElementById('activeStrokeCanvas');
+const activeStrokeCtx = activeStrokeCanvas.getContext('2d');
+const cursorCanvas = document.getElementById('cursorCanvas');
+const curCtx = cursorCanvas.getContext('2d');
+const BLEND_MODES = [
+{ label: 'Normal', value: 'source-over' },
+{ label: 'Multiply', value: 'multiply' },
+{ label: 'Screen', value: 'screen' },
+{ label: 'Overlay', value: 'overlay' },
+{ label: 'Darken', value: 'darken' },
+{ label: 'Lighten', value: 'lighten' },
+{ label: 'Color Dodge', value: 'color-dodge' },
+{ label: 'Color Burn', value: 'color-burn' },
+{ label: 'Hard Light', value: 'hard-light' },
+{ label: 'Soft Light', value: 'soft-light' },
+{ label: 'Difference', value: 'difference' },
+{ label: 'Exclusion', value: 'exclusion' },
+{ label: 'Hue', value: 'hue' },
+{ label: 'Saturation', value: 'saturation' },
+{ label: 'Color', value: 'color' },
+{ label: 'Luminosity', value: 'luminosity' }
+];
 
-    <script>
-        const stack = document.getElementById('canvasStack');
-        const list = document.getElementById('layerList');
-        const colorPreview = document.getElementById('activeColorPreview');
-        const hexDisplay = document.getElementById('hexDisplay');
-        const displayCanvas = document.getElementById('displayCanvas');
-        const displayCtx = displayCanvas.getContext('2d');
-        const activeStrokeCanvas = document.getElementById('activeStrokeCanvas');
-        const activeStrokeCtx = activeStrokeCanvas.getContext('2d');
-        const cursorCanvas = document.getElementById('cursorCanvas');
-        const curCtx = cursorCanvas.getContext('2d');
+let layers = [];
+let activeIdx = 0;
+let isPainting = false;
+let brushSize = 30;
+let opacity = 1.0;
+let color = 'rgb(211, 142, 63)';
+let mode = 'brush';
+let brushTip = 'round';
+let lastX = 0, lastY = 0;
+let isAltDown = false;
+let isSpaceDown = false;
+let isPanning = false;
+let panMouseX = 0, panMouseY = 0;
+let usePressure = false;
+let isTransforming = false;
+let hoveredHandle = null;
+let transformState = { x: 0, y: 0, width: 0, height: 0, scale: 1, rotation: 0, originalCanvas: null, activeHandle: null, startMouse: null, initialState: null };
+let zoom = 1.0;
+let rotation = 0;
+let flipH = false;
+let curH = 32, curS = 70, curV = 83;
+const undoStack = [];
+const redoStack = [];
+const INTERNAL_RES = 1600;
+let draggedIdx = null;
 
+// Krita-inspired Brush Settings
+const brushSettings = {
+    spacing: 0.1,  
+    hardness: 0.8, 
+    flow: 1.0,     
+    scatter: 0.0,
+    hueJitter: 0.0,
+    satJitter: 0.0,
+    briJitter: 0.0,
+    jitterMode: 'tip', // 'tip' or 'stroke'
+    strokeHueOffset: 0,
+    strokeSatOffset: 0,
+    strokeBriOffset: 0,
+    lastDabX: 0,
+    lastDabY: 0,
+    distSinceLastDab: 0
+};
 
-        const BLEND_MODES = [
-            { label: 'Normal', value: 'source-over' },
-            { label: 'Multiply', value: 'multiply' },
-            { label: 'Screen', value: 'screen' },
-            { label: 'Overlay', value: 'overlay' },
-            { label: 'Darken', value: 'darken' },
-            { label: 'Lighten', value: 'lighten' },
-            { label: 'Color Dodge', value: 'color-dodge' },
-            { label: 'Color Burn', value: 'color-burn' },
-            { label: 'Hard Light', value: 'hard-light' },
-            { label: 'Soft Light', value: 'soft-light' },
-            { label: 'Difference', value: 'difference' },
-            { label: 'Exclusion', value: 'exclusion' },
-            { label: 'Hue', value: 'hue' },
-            { label: 'Saturation', value: 'saturation' },
-            { label: 'Color', value: 'color' },
-            { label: 'Luminosity', value: 'luminosity' }
-        ];
+function init() {
+displayCanvas.width = activeStrokeCanvas.width = cursorCanvas.width = INTERNAL_RES;
+displayCanvas.height = activeStrokeCanvas.height = cursorCanvas.height = INTERNAL_RES;
+addLayer('Background', true);
+addLayer('Layer 1');
+stack.addEventListener('pointerdown', start);
+window.addEventListener('pointermove', move);
+window.addEventListener('pointerup', stop);
+window.addEventListener('pointercancel', stop);
+stack.addEventListener('mouseenter', () => { if (!isSpaceDown) cursorCanvas.style.opacity = 1; });
+stack.addEventListener('mouseleave', () => {
+curCtx.clearRect(0, 0, INTERNAL_RES, INTERNAL_RES);
+cursorCanvas.style.opacity = 0;
+});
+window.addEventListener('keydown', handleKeys);
+window.addEventListener('keyup', (e) => { 
+if(e.key === 'Alt') isAltDown = false; 
+if(e.code === 'Space') {
+isSpaceDown = false;
+isPanning = false;
+stack.style.cursor = isTransforming ? 'crosshair' : 'none';
+cursorCanvas.style.opacity = 1;
+}
+});
+document.getElementById('sizeSlider').oninput = (e) => updateBrushSize(e.target.value);
+document.getElementById('opacitySlider').oninput = (e) => {
+opacity = e.target.value / 100;
+document.getElementById('opacityVal').innerText = e.target.value + '%';
+};
 
+setupHSVSystem();
+setupBrushEngineUI();
+setupDraggable(document.getElementById('colorPanel'));
+setupDraggable(document.getElementById('adjPanel'));
+setupDraggable(document.getElementById('brushSettingsPanel'));
+updateViewport();
+renderStack();
+finalizeColor();
+window.addEventListener('pointermove', onGlobalReorderMove);
+window.addEventListener('pointerup', onGlobalReorderUp);
+}
 
-        let layers = [];
-        let activeIdx = 0;
-        let isPainting = false;
-        let brushSize = 30;
-        let opacity = 1.0;
-        let color = '#D38E3F';
-        let mode = 'brush';
-        let brushTip = 'round';
-        let lastX = 0, lastY = 0;
-        let isAltDown = false;
-        let usePressure = false;
-        let isTransforming = false;
-        let hoveredHandle = null;
-        let transformState = { x: 0, y: 0, width: 0, height: 0, scale: 1, rotation: 0, originalCanvas: null, activeHandle: null, startMouse: null, initialState: null };
-        let zoom = 1.0;
-        let rotation = 0;
-        let flipH = false;
-        let curH = 32, curS = 70, curV = 83;
-        const undoStack = [];
-        const INTERNAL_RES = 1600;
-        let draggedIdx = null;
+function setupBrushEngineUI() {
+    const bind = (id, key, multiplier = 1, isPercent = true) => {
+        const slider = document.getElementById(id);
+        const label = document.getElementById(id + '-val');
+        slider.oninput = (e) => {
+            const val = parseFloat(e.target.value) / multiplier;
+            brushSettings[key] = val;
+            label.innerText = isPercent ? Math.round(val * 100) + '%' : e.target.value;
+        };
+    };
+    bind('bs-spacing', 'spacing', 100);
+    bind('bs-hardness', 'hardness', 100);
+    bind('bs-flow', 'flow', 100);
+    bind('bs-scatter', 'scatter', 1, false);
+    bind('bs-hueJitter', 'hueJitter', 100);
+    bind('bs-satJitter', 'satJitter', 100);
+    bind('bs-briJitter', 'briJitter', 100);
 
+    document.getElementById('bs-jitterMode').onchange = (e) => {
+        brushSettings.jitterMode = e.target.value;
+    };
+}
 
-        function init() {
-            displayCanvas.width = activeStrokeCanvas.width = cursorCanvas.width = INTERNAL_RES;
-            displayCanvas.height = activeStrokeCanvas.height = cursorCanvas.height = INTERNAL_RES;
-            addLayer('Background', true);
-            addLayer('Layer 1');
+function toggleBrushSettings() {
+    const panel = document.getElementById('brushSettingsPanel');
+    panel.classList.toggle('hidden');
+    document.getElementById('btn-brush-settings').classList.toggle('active', !panel.classList.contains('hidden'));
+}
 
+function toggleTheme() {
+    const isLight = document.body.classList.toggle('light-mode');
+    const toggleBtn = document.getElementById('themeToggle').querySelector('i');
+    if (isLight) {
+        toggleBtn.className = 'fas fa-sun';
+    } else {
+        toggleBtn.className = 'fas fa-moon';
+    }
+}
 
-            stack.addEventListener('pointerdown', start);
-            window.addEventListener('pointermove', move);
-            window.addEventListener('pointerup', stop);
-            window.addEventListener('pointercancel', stop);
-           
-            stack.addEventListener('mouseenter', () => { cursorCanvas.style.opacity = 1; });
-            stack.addEventListener('mouseleave', () => {
-                curCtx.clearRect(0, 0, INTERNAL_RES, INTERNAL_RES);
-                cursorCanvas.style.opacity = 0;
-            });
+function togglePressure() {
+usePressure = !usePressure;
+const btn = document.getElementById('btn-pressure');
+btn.classList.toggle('text-[#D38E3F]', usePressure);
+btn.classList.toggle('text-gray-500', !usePressure);
+}
 
+function sampleColorAt(pos) {
+const data = displayCtx.getImageData(pos.x, pos.y, 1, 1).data;
+if (data[3] === 0) return;
+const [h, s, v] = rgbToHsv(data[0], data[1], data[2]);
+curH = h; curS = s; curV = v;
+finalizeColor();
+}
 
-            window.addEventListener('keydown', handleKeys);
-            window.addEventListener('keyup', (e) => { if(e.key === 'Alt') isAltDown = false; });
-           
-            document.getElementById('sizeSlider').oninput = (e) => updateBrushSize(e.target.value);
-            document.getElementById('opacitySlider').oninput = (e) => {
-                opacity = e.target.value / 100;
-                document.getElementById('opacityVal').innerText = e.target.value + '%';
+function rgbToHsv(r, g, b) {
+r /= 255; g /= 255; b /= 255;
+const max = Math.max(r, g, b), min = Math.min(r, g, b);
+let h, s, v = max;
+const d = max - min;
+s = max === 0 ? 0 : d / max;
+if (max === min) h = 0;
+else {
+switch (max) {
+case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+case g: h = (b - r) / d + 2; break;
+case b: h = (r - g) / d + 4; break;
+}
+h /= 6;
+}
+return [h * 360, s * 100, v * 100];
+}
+
+function changeZoom(delta) { zoom = Math.max(0.1, Math.min(5.0, zoom + delta)); updateViewport(); }
+function changeRotate(delta) { rotation += delta; updateViewport(); }
+function toggleFlip() { flipH = !flipH; updateViewport(); }
+function updateViewport() {
+stack.style.transform = `scale(${zoom}) rotate(${rotation}deg) scaleX(${flipH ? -1 : 1})`;
+document.getElementById('zoomVal').innerText = Math.round(zoom * 100) + '%';
+document.getElementById('rotateVal').innerText = (rotation % 360) + '°';
+}
+
+function updateBrushSize(val) {
+brushSize = Math.max(1, Math.min(300, parseInt(val)));
+document.getElementById('sizeSlider').value = brushSize;
+document.getElementById('sizeVal').innerText = brushSize + 'px';
+}
+
+function handleKeys(e) {
+if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+if (e.key === 'Alt') { e.preventDefault(); isAltDown = true; return; }
+if (e.code === 'Space') { 
+if (!isSpaceDown) {
+isSpaceDown = true;
+stack.style.cursor = 'grab';
+curCtx.clearRect(0, 0, INTERNAL_RES, INTERNAL_RES);
+cursorCanvas.style.opacity = 0;
+}
+e.preventDefault(); 
+return; 
+}
+const keyLow = e.key.toLowerCase();
+if (e.ctrlKey && e.shiftKey && keyLow === 'z') { e.preventDefault(); redo(); return; }
+if (e.ctrlKey && keyLow === 'z') { e.preventDefault(); undo(); return; }
+if (e.ctrlKey && keyLow === 'n') { e.preventDefault(); addLayer(); }
+if (e.ctrlKey && keyLow === 'j') { e.preventDefault(); duplicateLayer(); }
+if (e.ctrlKey && keyLow === 'e') { e.preventDefault(); mergeDown(); }
+if (e.ctrlKey && keyLow === 't') { e.preventDefault(); toggleTransform(); }
+if (e.key === 'Enter' && isTransforming) { e.preventDefault(); toggleTransform(); }
+if (e.key === 'Escape' && isTransforming) { e.preventDefault(); cancelTransform(); }
+if (e.ctrlKey && e.key === '+') { e.preventDefault(); changeZoom(0.1); }
+if (e.ctrlKey && e.key === '-') { e.preventDefault(); changeZoom(-0.1); }
+if (e.ctrlKey && e.key === '0') { e.preventDefault(); zoom = 1.0; rotation = 0; flipH = false; updateViewport(); }
+
+if (keyLow === 'b') setMode('brush');
+if (keyLow === 'e') setMode('eraser');
+if (keyLow === 's') setMode('smudge');
+if (keyLow === 'g') setMode('bucket');
+if (e.key === '[') updateBrushSize(brushSize - (brushSize > 20 ? 5 : 2));
+if (e.key === ']') updateBrushSize(brushSize + (brushSize > 20 ? 5 : 2));
+}
+
+function setupDraggable(el) {
+const header = el.querySelector('.panel-header');
+let nx = 0, ny = 0;
+header.addEventListener('pointerdown', (e) => {
+if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+header.setPointerCapture(e.pointerId);
+const currentTop = el.offsetTop;
+const currentLeft = el.offsetLeft;
+el.style.top = currentTop + "px";
+el.style.left = currentLeft + "px";
+el.style.bottom = 'auto';
+el.style.right = 'auto';
+nx = e.clientX; ny = e.clientY;
+const onPointerMove = (me) => {
+const dx = nx - me.clientX; const dy = ny - me.clientY;
+nx = me.clientX; ny = me.clientY;
+el.style.top = (el.offsetTop - dy) + "px";
+el.style.left = (el.offsetLeft - dx) + "px";
+};
+header.addEventListener('pointermove', onPointerMove);
+header.addEventListener('pointerup', () => { header.removeEventListener('pointermove', onPointerMove); }, { once: true });
+});
+}
+
+function toggleTransform() {
+if (!isTransforming) {
+const layer = layers[activeIdx];
+if (!layer) return;
+isTransforming = true;
+stack.style.cursor = 'crosshair';
+saveUndo();
+transformState.originalCanvas = document.createElement('canvas');
+transformState.originalCanvas.width = transformState.originalCanvas.height = INTERNAL_RES;
+transformState.originalCanvas.getContext('2d').drawImage(layer.canvas, 0, 0);
+transformState.x = transformState.y = INTERNAL_RES / 2;
+transformState.scale = 1;
+transformState.rotation = 0;
+document.getElementById('btn-transform').classList.add('text-[#D38E3F]');
+refreshUI();
+renderStack();
+} else {
+applyTransform();
+}
+}
+
+function cancelTransform() {
+isTransforming = false;
+stack.style.cursor = 'none';
+document.getElementById('btn-transform').classList.remove('text-[#D38E3F]');
+renderStack();
+}
+
+function applyTransform() {
+const layer = layers[activeIdx];
+const ctx = layer.ctx;
+ctx.clearRect(0, 0, INTERNAL_RES, INTERNAL_RES);
+ctx.save();
+ctx.translate(transformState.x, transformState.y);
+ctx.rotate(transformState.rotation);
+ctx.scale(transformState.scale, transformState.scale);
+ctx.drawImage(transformState.originalCanvas, -INTERNAL_RES/2, -INTERNAL_RES/2);
+ctx.restore();
+isTransforming = false;
+stack.style.cursor = 'none';
+document.getElementById('btn-transform').classList.remove('text-[#D38E3F]');
+renderStack();
+}
+
+function addLayer(name, isWhite = false) {
+saveUndo();
+const canvas = document.createElement('canvas');
+canvas.width = canvas.height = INTERNAL_RES;
+canvas.className = 'layer-canvas';
+const ctx = canvas.getContext('2d', { willReadFrequently: true });
+if (isWhite) { ctx.fillStyle = 'white'; ctx.fillRect(0, 0, INTERNAL_RES, INTERNAL_RES); }
+const layer = {
+id: Date.now(),
+name: name || `Layer ${layers.length + 1}`,
+canvas, ctx, visible: true, alphaLocked: false, clippingMask: false,
+blendMode: 'source-over', opacity: 1.0
+};
+layers.unshift(layer);
+activeIdx = 0;
+refreshUI();
+renderStack();
+}
+
+function duplicateLayer() {
+const source = layers[activeIdx];
+if (!source) return;
+saveUndo();
+const canvas = document.createElement('canvas');
+canvas.width = canvas.height = INTERNAL_RES;
+const ctx = canvas.getContext('2d');
+ctx.drawImage(source.canvas, 0, 0);
+const copy = { ...source, id: Date.now(), canvas, ctx, name: source.name + " copy" };
+layers.splice(activeIdx, 0, copy);
+refreshUI();
+renderStack();
+}
+
+function mergeDown() {
+if (activeIdx >= layers.length - 1) return;
+saveUndo();
+const top = layers[activeIdx];
+const bottom = layers[activeIdx + 1];
+const temp = document.createElement('canvas');
+temp.width = temp.height = INTERNAL_RES;
+const tctx = temp.getContext('2d');
+if (top.clippingMask) {
+const baseLayer = findClippingBase(activeIdx);
+if (baseLayer) {
+tctx.drawImage(top.canvas, 0, 0);
+tctx.globalCompositeOperation = 'destination-in';
+tctx.drawImage(baseLayer.canvas, 0, 0);
+} else { tctx.drawImage(top.canvas, 0, 0); }
+} else { tctx.drawImage(top.canvas, 0, 0); }
+bottom.ctx.save();
+bottom.ctx.globalAlpha = top.opacity;
+bottom.ctx.globalCompositeOperation = top.blendMode;
+bottom.ctx.drawImage(temp, 0, 0);
+bottom.ctx.restore();
+layers.splice(activeIdx, 1);
+activeIdx = Math.min(activeIdx, layers.length - 1);
+refreshUI();
+renderStack();
+}
+
+function deleteLayer(i, e) {
+e.stopPropagation();
+if (layers.length <= 1) return;
+saveUndo();
+layers.splice(i, 1);
+if (activeIdx > i) {
+activeIdx--;
+}
+activeIdx = Math.max(0, Math.min(activeIdx, layers.length - 1));
+refreshUI();
+renderStack();
+}
+
+function triggerImageImport() { document.getElementById('imageInput').click(); }
+
+function handleImageImport(e) {
+const file = e.target.files[0];
+if (!file) return;
+const reader = new FileReader();
+reader.onload = (event) => {
+const img = new Image();
+img.onload = () => {
+saveUndo();
+const canvas = document.createElement('canvas');
+canvas.width = canvas.height = INTERNAL_RES;
+const ctx = canvas.getContext('2d');
+const scale = Math.min(INTERNAL_RES / img.width, INTERNAL_RES / img.height);
+ctx.drawImage(img, (INTERNAL_RES - img.width * scale) / 2, (INTERNAL_RES - img.height * scale) / 2, img.width * scale, img.height * scale);
+layers.unshift({ id: Date.now(), name: file.name.split('.')[0] || 'Imported', canvas, ctx, visible: true, alphaLocked: false, clippingMask: false, blendMode: 'source-over', opacity: 1.0 });
+activeIdx = 0; refreshUI(); renderStack(); e.target.value = '';
+};
+img.src = event.target.result;
+};
+reader.readAsDataURL(file);
+}
+
+function startRename(i, e) {
+e.stopPropagation();
+const span = e.target;
+const input = document.createElement('input');
+input.type = 'text'; input.value = layers[i].name;
+input.className = 'bg-black text-white text-[10px] w-full border border-[#D38E3F] rounded outline-none px-1 font-bold';
+const finish = () => { if (input.value.trim()) layers[i].name = input.value; refreshUI(); };
+input.onblur = finish;
+input.onkeydown = (ke) => { if (ke.key === 'Enter') finish(); if (ke.key === 'Escape') refreshUI(); };
+span.replaceWith(input);
+input.focus(); input.select();
+}
+
+function onGlobalReorderMove(e) {
+if (draggedIdx === null) return;
+const targetEl = document.elementFromPoint(e.clientX, e.clientY);
+const item = targetEl?.closest('.layer-item');
+if (item) {
+const newIdx = Array.from(list.children).indexOf(item);
+if (newIdx !== -1 && newIdx !== draggedIdx) {
+const temp = layers.splice(draggedIdx, 1)[0];
+layers.splice(newIdx, 0, temp);
+draggedIdx = newIdx; activeIdx = newIdx;
+refreshUI();
+}
+}
+}
+
+function onGlobalReorderUp() { 
+if (draggedIdx !== null) { 
+saveUndo();
+draggedIdx = null; 
+refreshUI(); 
+renderStack(); 
+} 
+}
+
+function toggleAlphaLock(i, e) { e?.stopPropagation(); saveUndo(); layers[i].alphaLocked = !layers[i].alphaLocked; refreshUI(); }
+function toggleClipping(i, e) { e?.stopPropagation(); if (i === layers.length - 1) return; saveUndo(); layers[i].clippingMask = !layers[i].clippingMask; refreshUI(); renderStack(); }
+function setBlendMode(i, mode) { saveUndo(); layers[i].blendMode = mode; renderStack(); }
+function updateLayerOpacity(i, val) { layers[i].opacity = val / 100; renderStack(); }
+function toggleVis(i, e) { e.stopPropagation(); saveUndo(); layers[i].visible = !layers[i].visible; refreshUI(); renderStack(); }
+
+function refreshUI() {
+const currentScroll = list.scrollTop;
+list.innerHTML = '';
+layers.forEach((l, i) => {
+const isActive = i === activeIdx;
+const el = document.createElement('div');
+el.className = `layer-item group p-3 rounded-xl flex flex-col gap-2 transition-all cursor-pointer ${isActive ? 'active' : 'hover:bg-black/5 dark:hover:bg-white/5'} ${l.clippingMask ? 'clipping-indent' : ''} ${i === draggedIdx ? 'dragging-visual' : ''}`;
+el.addEventListener('pointerdown', (e) => {
+if (e.target.closest('.vis-toggle') || e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) return;
+draggedIdx = i; activeIdx = i;
+el.setPointerCapture(e.pointerId);
+refreshUI();
+});
+const blendOptions = BLEND_MODES.map(m => `<option value="${m.value}" ${l.blendMode === m.value ? 'selected' : ''}>${m.label}</option>`).join('');
+el.innerHTML = `
+<div class="flex items-center gap-3">
+<div class="vis-toggle text-[10px] text-gray-500 w-4 flex items-center justify-center" onclick="toggleVis(${i}, event)">
+<i class="fas ${l.visible ? 'fa-eye' : 'fa-eye-slash'}"></i>
+</div>
+<div class="flex-1 min-w-0">
+<span class="layer-name text-[10px] font-bold truncate block ${isActive ? '' : 'text-gray-400'}" ondblclick="startRename(${i}, event)">${l.name}</span>
+</div>
+<button onclick="deleteLayer(${i}, event)" class="text-gray-600 hover:text-red-500 transition-all ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}">
+<i class="fas fa-trash text-[10px]"></i>
+</button>
+</div>
+<div class="flex items-center gap-2" onclick="event.stopPropagation()">
+<span class="text-[8px] text-gray-500 uppercase font-bold">Op</span>
+<input type="range" min="0" max="100" value="${l.opacity * 100}" class="layer-opacity-slider" onpointerdown="saveUndo()" oninput="updateLayerOpacity(${i}, this.value)">
+<span class="text-[8px] text-gray-500 w-6 font-mono">${Math.round(l.opacity * 100)}</span>
+</div>
+<div class="flex items-center justify-between gap-2">
+<select onchange="setBlendMode(${i}, this.value)" class="flex-1" onclick="event.stopPropagation()">
+${blendOptions}
+</select>
+<div class="flex gap-2">
+<button onclick="toggleAlphaLock(${i}, event)" class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded ${l.alphaLocked ? 'bg-[#D38E3F]/20 text-[#D38E3F]' : 'text-gray-600'}">Lock</button>
+<button onclick="toggleClipping(${i}, event)" class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded ${l.clippingMask ? 'bg-[#D38E3F]/20 text-[#D38E3F]' : 'text-gray-600'}">Clip</button>
+</div>
+</div>
+`;
+list.appendChild(el);
+});
+list.scrollTop = currentScroll;
+}
+
+function findClippingBase(i) {
+for (let j = i + 1; j < layers.length; j++) {
+if (!layers[j].clippingMask) return layers[j];
+}
+return null;
+}
+
+function renderStack() {
+displayCtx.clearRect(0, 0, INTERNAL_RES, INTERNAL_RES);
+for (let i = layers.length - 1; i >= 0; i--) {
+const layer = layers[i];
+if (!layer.visible) continue;
+displayCtx.save();
+displayCtx.globalAlpha = layer.opacity;
+
+const isDrawingCurrent = isPainting && i === activeIdx;
+
+if (isTransforming && i === activeIdx) {
+displayCtx.globalAlpha *= 0.5;
+displayCtx.translate(transformState.x, transformState.y);
+displayCtx.rotate(transformState.rotation);
+displayCtx.scale(transformState.scale, transformState.scale);
+displayCtx.drawImage(transformState.originalCanvas, -INTERNAL_RES/2, -INTERNAL_RES/2);
+} else if (layer.clippingMask) {
+const baseLayer = findClippingBase(i);
+if (baseLayer) {
+const tempCanvas = document.createElement('canvas');
+tempCanvas.width = tempCanvas.height = INTERNAL_RES;
+const tctx = tempCanvas.getContext('2d');
+tctx.drawImage(layer.canvas, 0, 0);
+if (isDrawingCurrent) {
+if (mode === 'eraser') tctx.globalCompositeOperation = 'destination-out';
+else if (layer.alphaLocked) tctx.globalCompositeOperation = 'source-atop';
+else tctx.globalCompositeOperation = 'source-over';
+tctx.drawImage(activeStrokeCanvas, 0, 0);
+}
+tctx.globalCompositeOperation = 'destination-in';
+tctx.drawImage(baseLayer.canvas, 0, 0);
+displayCtx.globalCompositeOperation = layer.blendMode;
+displayCtx.drawImage(tempCanvas, 0, 0);
+} else { displayCtx.globalCompositeOperation = layer.blendMode; displayCtx.drawImage(layer.canvas, 0, 0); }
+} else {
+if (isDrawingCurrent) {
+const buffer = document.createElement('canvas'); buffer.width = buffer.height = INTERNAL_RES;
+const bctx = buffer.getContext('2d');
+bctx.drawImage(layer.canvas, 0, 0);
+if (mode === 'eraser') bctx.globalCompositeOperation = 'destination-out';
+else if (layer.alphaLocked) bctx.globalCompositeOperation = 'source-atop';
+else bctx.globalCompositeOperation = 'source-over';
+bctx.drawImage(activeStrokeCanvas, 0, 0);
+displayCtx.globalCompositeOperation = layer.blendMode;
+displayCtx.drawImage(buffer, 0, 0);
+} else {
+displayCtx.globalCompositeOperation = layer.blendMode;
+displayCtx.drawImage(layer.canvas, 0, 0);
+}
+}
+displayCtx.restore();
+}
+}
+
+function start(e) {
+if (e.pointerType === 'pen' || e.pointerType === 'mouse') { stack.setPointerCapture(e.pointerId); }
+if (isSpaceDown) {
+isPanning = true;
+panMouseX = e.clientX;
+panMouseY = e.clientY;
+stack.style.cursor = 'grabbing';
+return;
+}
+const pos = getPos(e);
+lastX = pos.x; lastY = pos.y;
+brushSettings.lastDabX = pos.x;
+brushSettings.lastDabY = pos.y;
+brushSettings.distSinceLastDab = 0;
+
+// Initialize "Per Stroke" Offsets
+if (brushSettings.jitterMode === 'stroke') {
+    brushSettings.strokeHueOffset = (Math.random() - 0.5) * brushSettings.hueJitter * 360;
+    brushSettings.strokeSatOffset = (Math.random() - 0.5) * brushSettings.satJitter * 100;
+    brushSettings.strokeBriOffset = (Math.random() - 0.5) * brushSettings.briJitter * 100;
+} else {
+    brushSettings.strokeHueOffset = brushSettings.strokeSatOffset = brushSettings.strokeBriOffset = 0;
+}
+
+if (isAltDown && (mode === 'brush' || mode === 'bucket')) { sampleColorAt(pos); return; }
+if (isTransforming) {
+const handle = getTransformHandle(pos.x, pos.y);
+transformState.activeHandle = handle; transformState.startMouse = { x: pos.x, y: pos.y }; transformState.initialState = { ...transformState };
+return;
+}
+if (mode === 'bucket') { saveUndo(); floodFill(pos.x, pos.y); }
+else {
+isPainting = true; saveUndo(); activeStrokeCtx.clearRect(0,0,INTERNAL_RES, INTERNAL_RES);
+if (mode === 'smudge') {
+smudgeBuffer = document.createElement('canvas'); smudgeBuffer.width = smudgeBuffer.height = brushSize;
+smudgeBuffer.getContext('2d').drawImage(layers[activeIdx].canvas, pos.x - brushSize/2, pos.y - brushSize/2, brushSize, brushSize, 0, 0, brushSize, brushSize);
+}
+draw(e); renderStack();
+}
+}
+
+function move(e) {
+if (isPanning) {
+viewport.scrollLeft -= (e.clientX - panMouseX);
+viewport.scrollTop -= (e.clientY - panMouseY);
+panMouseX = e.clientX;
+panMouseY = e.clientY;
+return;
+}
+const pos = getPos(e);
+if (isAltDown && isPainting) sampleColorAt(pos);
+if (isTransforming) {
+if (transformState.activeHandle) { updateTransform(pos); renderStack(); } else { hoveredHandle = getTransformHandle(pos.x, pos.y); }
+} else if (isPainting) { draw(e); renderStack(); }
+updateCursor(pos); lastX = pos.x; lastY = pos.y;
+}
+
+function stop() { 
+if (isPanning) {
+isPanning = false;
+stack.style.cursor = isSpaceDown ? 'grab' : (isTransforming ? 'crosshair' : 'none');
+return;
+}
+if (isTransforming) transformState.activeHandle = null; 
+if (isPainting) { commitActiveStroke(); isPainting = false; smudgeBuffer = null; renderStack(); } 
+}
+
+function commitActiveStroke() {
+const layer = layers[activeIdx]; if (!layer) return;
+layer.ctx.save();
+if (mode === 'eraser') layer.ctx.globalCompositeOperation = 'destination-out';
+else if (layer.alphaLocked) layer.ctx.globalCompositeOperation = 'source-atop';
+else layer.ctx.globalCompositeOperation = 'source-over';
+layer.ctx.drawImage(activeStrokeCanvas, 0, 0); layer.ctx.restore();
+activeStrokeCtx.clearRect(0,0,INTERNAL_RES, INTERNAL_RES);
+}
+
+function getTransformHandle(x, y) {
+const s = transformState; const vs = INTERNAL_RES / stack.getBoundingClientRect().width; const threshold = 25 * vs;
+const hw = (s.width / 2) * s.scale; const hh = (s.height / 2) * s.scale;
+const rot = { x: s.x + 0 * Math.cos(s.rotation) - (-hh - 50 * vs) * Math.sin(s.rotation), y: s.y + 0 * Math.sin(s.rotation) + (-hh - 50 * vs) * Math.cos(s.rotation) };
+if (Math.hypot(x - rot.x, y - rot.y) < threshold) return 'rotate';
+const corners = [ { id: 'tl', x: s.x - hw, y: s.y - hh }, { id: 'tr', x: s.x + hw, y: s.y - hh }, { id: 'bl', x: s.x - hw, y: s.y + hh }, { id: 'br', x: s.x + hw, y: s.y + hh } ];
+for (const c of corners) {
+const rad = s.rotation; const dx = c.x - s.x; const dy = c.y - s.y;
+const px = s.x + dx * Math.cos(rad) - dy * Math.sin(rad);
+const py = s.y + dx * Math.sin(rad) + dy * Math.cos(rad);
+if (Math.hypot(x - px, y - py) < threshold) return c.id;
+}
+const rad = -s.rotation; const dx = (x - s.x) * Math.cos(rad) - (y - s.y) * Math.sin(rad); const dy = (x - s.x) * Math.sin(rad) + (y - s.y) * Math.cos(rad);
+if (Math.abs(dx) < hw && Math.abs(dy) < hh) return 'move';
+return null;
+}
+
+function updateTransform(pos) {
+const s = transformState; const init = s.initialState; const dx = pos.x - s.startMouse.x; const dy = pos.y - s.startMouse.y;
+if (s.activeHandle === 'move') { s.x = init.x + dx; s.y = init.y + dy; }
+else if (s.activeHandle === 'rotate') { s.rotation = init.rotation + (Math.atan2(pos.y - s.y, pos.x - s.x) - Math.atan2(s.startMouse.y - s.y, s.startMouse.x - s.x)); }
+else if (['tl', 'tr', 'bl', 'br'].includes(s.activeHandle)) { s.scale = Math.max(0.01, init.scale * (Math.hypot(pos.x - s.x, pos.y - s.y) / Math.hypot(s.startMouse.x - s.x, s.startMouse.y - s.y))); }
+}
+
+function updateCursor(pos) {
+curCtx.clearRect(0, 0, INTERNAL_RES, INTERNAL_RES);
+const rect = stack.getBoundingClientRect(); 
+if (pos.rawX < rect.left || pos.rawX > rect.right || pos.rawY < rect.top || pos.rawY > rect.bottom) return;
+curCtx.save(); 
+const vs = INTERNAL_RES / rect.width;
+if (isTransforming) {
+const s = transformState; curCtx.save(); curCtx.translate(s.x, s.y); curCtx.rotate(s.rotation);
+const hw = (s.width / 2) * s.scale; const hh = (s.height / 2) * s.scale;
+curCtx.strokeStyle = 'rgba(211, 142, 63, 0.5)'; curCtx.lineWidth = vs; curCtx.strokeRect(-hw, -hh, hw * 2, hh * 2);
+[[-hw, -hh], [hw, -hh], [-hw, hh], [hw, hh]].forEach(p => { curCtx.fillStyle = '#D38E3F'; curCtx.fillRect(p[0]-7*vs, p[1]-7*vs, 14*vs, 14*vs); });
+curCtx.restore();
+} else if (!isSpaceDown) {
+let outlineColor = 'white';
+try {
+const px = Math.floor(pos.x);
+const py = Math.floor(pos.y);
+if (px >= 0 && px < INTERNAL_RES && py >= 0 && py < INTERNAL_RES) {
+const pixel = displayCtx.getImageData(px, py, 1, 1).data;
+const v = pixel[3] === 0 ? 100 : (Math.max(pixel[0], pixel[1], pixel[2]) / 255 * 100);
+outlineColor = v > 50 ? 'black' : 'white';
+}
+} catch(e) { outlineColor = 'white'; }
+curCtx.translate(pos.x, pos.y); 
+curCtx.strokeStyle = outlineColor; 
+curCtx.lineWidth = vs;
+if (brushTip === 'round') { curCtx.beginPath(); curCtx.arc(0, 0, brushSize / 2, 0, Math.PI * 2); curCtx.stroke(); }
+else { curCtx.strokeRect(-brushSize/2, -brushSize/6, brushSize, brushSize/3); }
+}
+curCtx.restore();
+}
+
+/**
+ * Professional Dab Rendering
+ */
+function renderDab(ctx, x, y, size, colorString, hardness, currentFlow) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.globalAlpha = currentFlow;
+
+    if (brushTip === 'round') {
+        const rad = size / 2;
+        const innerRad = rad * Math.min(hardness, 0.999);
+        const grad = ctx.createRadialGradient(0, 0, innerRad, 0, 0, rad);
+        grad.addColorStop(0, colorString);
+        grad.addColorStop(1, colorString.replace('rgb', 'rgba').replace(')', ', 0)')); 
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(0, 0, rad, 0, Math.PI * 2);
+        ctx.fill();
+    } else {
+        ctx.fillStyle = colorString;
+        ctx.fillRect(-size/2, -size/6, size, size/3);
+    }
+    ctx.restore();
+}
+
+/**
+ * HSV to RGB helper for engine loops
+ */
+function getEngineColor(h, s, v) {
+    h = (h + 360) % 360;
+    s = Math.max(0, Math.min(100, s)) / 100;
+    v = Math.max(0, Math.min(100, v)) / 100;
+    const f = n => v * (1 - s * Math.max(0, Math.min((n + h / 60) % 6, 4 - (n + h / 60) % 6, 1)));
+    return `rgb(${Math.round(f(5) * 255)},${Math.round(f(3) * 255)},${Math.round(f(1) * 255)})`;
+}
+
+function draw(e) {
+    const pos = getPos(e);
+    const layer = layers[activeIdx];
+    if (!layer || !layer.visible) return;
+
+    let finalOpacity = opacity;
+    if (usePressure && e.pressure !== undefined && e.pressure > 0) finalOpacity *= e.pressure;
+
+    const spacingPx = Math.max(1, brushSize * brushSettings.spacing);
+    const dist = Math.hypot(pos.x - lastX, pos.y - lastY);
+    
+    brushSettings.distSinceLastDab += dist;
+
+    while (brushSettings.distSinceLastDab >= spacingPx) {
+        const ratio = (spacingPx - (brushSettings.distSinceLastDab - dist)) / dist;
+        const dabX = lastX + (pos.x - lastX) * (isNaN(ratio) ? 1 : ratio);
+        const dabY = lastY + (pos.y - lastY) * (isNaN(ratio) ? 1 : ratio);
+
+        let renderX = dabX;
+        let renderY = dabY;
+        if (brushSettings.scatter > 0) {
+            renderX += (Math.random() - 0.5) * brushSettings.scatter * brushSize;
+            renderY += (Math.random() - 0.5) * brushSettings.scatter * brushSize;
+        }
+
+        // Apply Color Dynamics
+        let dH = brushSettings.strokeHueOffset;
+        let dS = brushSettings.strokeSatOffset;
+        let dV = brushSettings.strokeBriOffset;
+
+        if (brushSettings.jitterMode === 'tip') {
+            dH = (Math.random() - 0.5) * brushSettings.hueJitter * 360;
+            dS = (Math.random() - 0.5) * brushSettings.satJitter * 100;
+            dV = (Math.random() - 0.5) * brushSettings.briJitter * 100;
+        }
+
+        const dabColor = (mode === 'eraser') ? 'rgb(255,255,255)' : getEngineColor(curH + dH, curS + dS, curV + dV);
+
+        renderDab(activeStrokeCtx, renderX, renderY, brushSize, dabColor, brushSettings.hardness, finalOpacity * brushSettings.flow);
+        
+        brushSettings.distSinceLastDab -= spacingPx;
+        brushSettings.lastDabX = dabX;
+        brushSettings.lastDabY = dabY;
+    }
+}
+
+function floodFill(x,y) { const l = layers[activeIdx]; l.ctx.fillStyle = color; l.ctx.globalAlpha = opacity; l.ctx.fillRect(0,0,INTERNAL_RES,INTERNAL_RES); renderStack(); }
+
+function captureState() {
+    return {
+        activeIdx: activeIdx,
+        layers: layers.map(l => {
+            const canvasCopy = document.createElement('canvas');
+            canvasCopy.width = canvasCopy.height = INTERNAL_RES;
+            const ctxCopy = canvasCopy.getContext('2d');
+            ctxCopy.drawImage(l.canvas, 0, 0);
+            return {
+                id: l.id,
+                name: l.name,
+                visible: l.visible,
+                alphaLocked: l.alphaLocked,
+                clippingMask: l.clippingMask,
+                blendMode: l.blendMode,
+                opacity: l.opacity,
+                canvas: canvasCopy,
+                ctx: ctxCopy
             };
-
-
-            setupHSVSystem();
-            setupDraggable(document.getElementById('colorPanel'));
-            setupDraggable(document.getElementById('adjPanel'));
-            updateViewport();
-            renderStack();
-            finalizeColor();
-
-
-            window.addEventListener('pointermove', onGlobalReorderMove);
-            window.addEventListener('pointerup', onGlobalReorderUp);
-        }
-
-
-        function togglePressure() {
-            usePressure = !usePressure;
-            const btn = document.getElementById('btn-pressure');
-            btn.classList.toggle('text-[#D38E3F]', usePressure);
-            btn.classList.toggle('text-gray-500', !usePressure);
-        }
-
-
-        function sampleColorAt(pos) {
-            const data = displayCtx.getImageData(pos.x, pos.y, 1, 1).data;
-            if (data[3] === 0) return;
-            const [h, s, v] = rgbToHsv(data[0], data[1], data[2]);
-            curH = h; curS = s; curV = v;
-            finalizeColor();
-        }
-
-
-        function rgbToHsv(r, g, b) {
-            r /= 255; g /= 255; b /= 255;
-            const max = Math.max(r, g, b), min = Math.min(r, g, b);
-            let h, s, v = max;
-            const d = max - min;
-            s = max === 0 ? 0 : d / max;
-            if (max === min) h = 0;
-            else {
-                switch (max) {
-                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-                    case g: h = (b - r) / d + 2; break;
-                    case b: h = (r - g) / d + 4; break;
-                }
-                h /= 6;
-            }
-            return [h * 360, s * 100, v * 100];
-        }
-
-
-        function changeZoom(delta) { zoom = Math.max(0.1, Math.min(5.0, zoom + delta)); updateViewport(); }
-        function changeRotate(delta) { rotation += delta; updateViewport(); }
-        function toggleFlip() { flipH = !flipH; updateViewport(); }
-
-
-        function updateViewport() {
-            stack.style.transform = `scale(${zoom}) rotate(${rotation}deg) scaleX(${flipH ? -1 : 1})`;
-            document.getElementById('zoomVal').innerText = Math.round(zoom * 100) + '%';
-            document.getElementById('rotateVal').innerText = (rotation % 360) + '°';
-        }
-
-
-        function updateBrushSize(val) {
-            brushSize = Math.max(1, Math.min(300, parseInt(val)));
-            document.getElementById('sizeSlider').value = brushSize;
-            document.getElementById('sizeVal').innerText = brushSize + 'px';
-        }
-
-
-        function handleKeys(e) {
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
-            if (e.key === 'Alt') { e.preventDefault(); isAltDown = true; return; }
-            const keyLow = e.key.toLowerCase();
-           
-            if (e.ctrlKey && keyLow === 'n') { e.preventDefault(); addLayer(); }
-            if (e.ctrlKey && keyLow === 'j') { e.preventDefault(); duplicateLayer(); }
-            if (e.ctrlKey && keyLow === 'e') { e.preventDefault(); mergeDown(); }
-
-
-            if (e.ctrlKey && keyLow === 't') { e.preventDefault(); toggleTransform(); }
-            if (e.key === 'Enter' && isTransforming) { e.preventDefault(); toggleTransform(); }
-            if (e.key === 'Escape' && isTransforming) { e.preventDefault(); cancelTransform(); }
-            if (e.ctrlKey && e.key === '+') { e.preventDefault(); changeZoom(0.1); }
-            if (e.ctrlKey && e.key === '-') { e.preventDefault(); changeZoom(-0.1); }
-            if (e.ctrlKey && e.key === '0') { e.preventDefault(); zoom = 1.0; rotation = 0; flipH = false; updateViewport(); }
-            if (e.ctrlKey && keyLow === 'z') { e.preventDefault(); undo(); }
-            if (keyLow === 'b') setMode('brush');
-            if (keyLow === 'e') setMode('eraser');
-            if (keyLow === 's') setMode('smudge');
-            if (keyLow === 'g') setMode('bucket');
-            if (e.key === '[') updateBrushSize(brushSize - (brushSize > 20 ? 5 : 2));
-            if (e.key === ']') updateBrushSize(brushSize + (brushSize > 20 ? 5 : 2));
-        }
-
-
-        function setupDraggable(el) {
-            const header = el.querySelector('.panel-header');
-            let nx = 0, ny = 0;
-            header.addEventListener('pointerdown', (e) => {
-                if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
-                header.setPointerCapture(e.pointerId);
-                nx = e.clientX; ny = e.clientY;
-                const onPointerMove = (me) => {
-                    const dx = nx - me.clientX; const dy = ny - me.clientY;
-                    nx = me.clientX; ny = me.clientY;
-                    el.style.top = (el.offsetTop - dy) + "px";
-                    el.style.left = (el.offsetLeft - dx) + "px";
-                };
-                header.addEventListener('pointermove', onPointerMove);
-                header.addEventListener('pointerup', () => { header.removeEventListener('pointermove', onPointerMove); }, { once: true });
-            });
-        }
-
-
-        function toggleTransform() {
-            if (!isTransforming) {
-                const layer = layers[activeIdx];
-                if (!layer) return;
-                isTransforming = true;
-                stack.style.cursor = 'crosshair';
-                saveUndo();
-                transformState.originalCanvas = document.createElement('canvas');
-                transformState.originalCanvas.width = transformState.originalCanvas.height = INTERNAL_RES;
-                transformState.originalCanvas.getContext('2d').drawImage(layer.canvas, 0, 0);
-                transformState.x = transformState.y = INTERNAL_RES / 2;
-                transformState.scale = 1;
-                transformState.rotation = 0;
-                document.getElementById('btn-transform').classList.add('text-[#D38E3F]');
-                refreshUI();
-                renderStack();
-            } else {
-                applyTransform();
-            }
-        }
-
-
-        function cancelTransform() {
-            isTransforming = false;
-            stack.style.cursor = 'none';
-            document.getElementById('btn-transform').classList.remove('text-[#D38E3F]');
-            renderStack();
-        }
-
-
-        function applyTransform() {
-            const layer = layers[activeIdx];
-            const ctx = layer.ctx;
-            ctx.clearRect(0, 0, INTERNAL_RES, INTERNAL_RES);
-            ctx.save();
-            ctx.translate(transformState.x, transformState.y);
-            ctx.rotate(transformState.rotation);
-            ctx.scale(transformState.scale, transformState.scale);
-            ctx.drawImage(transformState.originalCanvas, -INTERNAL_RES/2, -INTERNAL_RES/2);
-            ctx.restore();
-            isTransforming = false;
-            stack.style.cursor = 'none';
-            document.getElementById('btn-transform').classList.remove('text-[#D38E3F]');
-            renderStack();
-        }
-
-
-        function addLayer(name, isWhite = false) {
-            const canvas = document.createElement('canvas');
-            canvas.width = canvas.height = INTERNAL_RES;
-            canvas.className = 'layer-canvas';
-            const ctx = canvas.getContext('2d', { willReadFrequently: true });
-            if (isWhite) { ctx.fillStyle = 'white'; ctx.fillRect(0, 0, INTERNAL_RES, INTERNAL_RES); }
-            const layer = {
-                id: Date.now(),
-                name: name || `Layer ${layers.length + 1}`,
-                canvas, ctx, visible: true, alphaLocked: false, clippingMask: false,
-                blendMode: 'source-over', opacity: 1.0
-            };
-            layers.unshift(layer);
-            activeIdx = 0;
-            refreshUI();
-            renderStack();
-        }
-
-
-        function duplicateLayer() {
-            const source = layers[activeIdx];
-            if (!source) return;
-            saveUndo();
-            const canvas = document.createElement('canvas');
-            canvas.width = canvas.height = INTERNAL_RES;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(source.canvas, 0, 0);
-            const copy = { ...source, id: Date.now(), canvas, ctx, name: source.name + " copy" };
-            layers.splice(activeIdx, 0, copy);
-            refreshUI();
-            renderStack();
-        }
-
-
-        function mergeDown() {
-            if (activeIdx >= layers.length - 1) return;
-            saveUndo();
-            const top = layers[activeIdx];
-            const bottom = layers[activeIdx + 1];
-            const temp = document.createElement('canvas');
-            temp.width = temp.height = INTERNAL_RES;
-            const tctx = temp.getContext('2d');
-            if (top.clippingMask) {
-                const baseLayer = findClippingBase(activeIdx);
-                if (baseLayer) {
-                    tctx.drawImage(top.canvas, 0, 0);
-                    tctx.globalCompositeOperation = 'destination-in';
-                    tctx.drawImage(baseLayer.canvas, 0, 0);
-                } else { tctx.drawImage(top.canvas, 0, 0); }
-            } else { tctx.drawImage(top.canvas, 0, 0); }
-            bottom.ctx.save();
-            bottom.ctx.globalAlpha = top.opacity;
-            bottom.ctx.globalCompositeOperation = top.blendMode;
-            bottom.ctx.drawImage(temp, 0, 0);
-            bottom.ctx.restore();
-            layers.splice(activeIdx, 1);
-            activeIdx = Math.min(activeIdx, layers.length - 1);
-            refreshUI();
-            renderStack();
-        }
-
-
-        function deleteLayer(i, e) {
-            e.stopPropagation();
-            if (layers.length <= 1) return;
-            layers.splice(i, 1);
-            activeIdx = Math.min(activeIdx, layers.length - 1);
-            refreshUI();
-            renderStack();
-        }
-
-
-        function triggerImageImport() { document.getElementById('imageInput').click(); }
-
-
-        function handleImageImport(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = canvas.height = INTERNAL_RES;
-                    const ctx = canvas.getContext('2d');
-                    const scale = Math.min(INTERNAL_RES / img.width, INTERNAL_RES / img.height);
-                    ctx.drawImage(img, (INTERNAL_RES - img.width * scale) / 2, (INTERNAL_RES - img.height * scale) / 2, img.width * scale, img.height * scale);
-                    layers.unshift({ id: Date.now(), name: file.name.split('.')[0] || 'Imported', canvas, ctx, visible: true, alphaLocked: false, clippingMask: false, blendMode: 'source-over', opacity: 1.0 });
-                    activeIdx = 0; refreshUI(); renderStack(); e.target.value = '';
-                };
-                img.src = event.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-
-
-        function startRename(i, e) {
-            e.stopPropagation();
-            const span = e.target;
-            const input = document.createElement('input');
-            input.type = 'text'; input.value = layers[i].name;
-            input.className = 'bg-black text-white text-[10px] w-full border border-[#D38E3F] rounded outline-none px-1 font-bold';
-            const finish = () => { if (input.value.trim()) layers[i].name = input.value; refreshUI(); };
-            input.onblur = finish;
-            input.onkeydown = (ke) => { if (ke.key === 'Enter') finish(); if (ke.key === 'Escape') refreshUI(); };
-            span.replaceWith(input);
-            input.focus(); input.select();
-        }
-
-
-        function onGlobalReorderMove(e) {
-            if (draggedIdx === null) return;
-            const targetEl = document.elementFromPoint(e.clientX, e.clientY);
-            const item = targetEl?.closest('.layer-item');
-            if (item) {
-                const newIdx = Array.from(list.children).indexOf(item);
-                if (newIdx !== -1 && newIdx !== draggedIdx) {
-                    const temp = layers.splice(draggedIdx, 1)[0];
-                    layers.splice(newIdx, 0, temp);
-                    draggedIdx = newIdx; activeIdx = newIdx;
-                    refreshUI();
-                }
-            }
-        }
-
-
-        function onGlobalReorderUp() { if (draggedIdx !== null) { draggedIdx = null; refreshUI(); renderStack(); } }
-
-
-        function toggleAlphaLock(i, e) { e?.stopPropagation(); layers[i].alphaLocked = !layers[i].alphaLocked; refreshUI(); }
-        function toggleClipping(i, e) { e?.stopPropagation(); if (i === layers.length - 1) return; layers[i].clippingMask = !layers[i].clippingMask; refreshUI(); renderStack(); }
-        function setBlendMode(i, mode) { layers[i].blendMode = mode; renderStack(); }
-        function updateLayerOpacity(i, val) { layers[i].opacity = val / 100; renderStack(); }
-        function toggleVis(i, e) { e.stopPropagation(); layers[i].visible = !layers[i].visible; refreshUI(); renderStack(); }
-
-
-        function refreshUI() {
-            const currentScroll = list.scrollTop;
-            list.innerHTML = '';
-            layers.forEach((l, i) => {
-                const isActive = i === activeIdx;
-                const el = document.createElement('div');
-                el.className = `layer-item group p-3 rounded-xl flex flex-col gap-2 transition-all cursor-pointer ${isActive ? 'active' : 'hover:bg-white/5'} ${l.clippingMask ? 'clipping-indent' : ''} ${i === draggedIdx ? 'dragging-visual' : ''}`;
-               
-                el.addEventListener('pointerdown', (e) => {
-                    // Logic fix: Don't trigger drag when clicking on the visibility toggle container
-                    if (e.target.closest('.vis-toggle') || e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
-                    draggedIdx = i; activeIdx = i;
-                    el.setPointerCapture(e.pointerId);
-                    refreshUI();
-                });
-
-
-                const blendOptions = BLEND_MODES.map(m => `<option value="${m.value}" ${l.blendMode === m.value ? 'selected' : ''}>${m.label}</option>`).join('');
-                el.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <div class="vis-toggle text-[10px] text-gray-500 w-4 flex items-center justify-center" onclick="toggleVis(${i}, event)">
-                            <i class="fas ${l.visible ? 'fa-eye' : 'fa-eye-slash'}"></i>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <span class="layer-name text-[10px] font-bold truncate block ${isActive ? 'text-white' : 'text-gray-400'}" ondblclick="startRename(${i}, event)">${l.name}</span>
-                        </div>
-                        <button onclick="deleteLayer(${i}, event)" class="text-gray-600 hover:text-red-500 transition-all ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}">
-                            <i class="fas fa-trash text-[10px]"></i>
-                        </button>
-                    </div>
-                    <div class="flex items-center gap-2" onclick="event.stopPropagation()">
-                        <span class="text-[8px] text-gray-500 uppercase font-bold">Op</span>
-                        <input type="range" min="0" max="100" value="${l.opacity * 100}" class="layer-opacity-slider" oninput="updateLayerOpacity(${i}, this.value)">
-                        <span class="text-[8px] text-gray-500 w-6 font-mono">${Math.round(l.opacity * 100)}</span>
-                    </div>
-                    <div class="flex items-center justify-between gap-2">
-                        <select onchange="setBlendMode(${i}, this.value)" class="flex-1" onclick="event.stopPropagation()">
-                            ${blendOptions}
-                        </select>
-                        <div class="flex gap-2">
-                            <button onclick="toggleAlphaLock(${i}, event)" class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded ${l.alphaLocked ? 'bg-[#D38E3F]/20 text-[#D38E3F]' : 'text-gray-600'}">Lock</button>
-                            <button onclick="toggleClipping(${i}, event)" class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded ${l.clippingMask ? 'bg-[#D38E3F]/20 text-[#D38E3F]' : 'text-gray-600'}">Clip</button>
-                        </div>
-                    </div>
-                `;
-                list.appendChild(el);
-            });
-            list.scrollTop = currentScroll;
-        }
-
-
-        function findClippingBase(i) {
-            for (let j = i + 1; j < layers.length; j++) {
-                if (!layers[j].clippingMask) return layers[j];
-            }
-            return null;
-        }
-
-
-        function renderStack() {
-            displayCtx.clearRect(0, 0, INTERNAL_RES, INTERNAL_RES);
-            for (let i = layers.length - 1; i >= 0; i--) {
-                const layer = layers[i];
-                if (!layer.visible) continue;
-                displayCtx.save();
-                displayCtx.globalAlpha = layer.opacity;
-                if (isTransforming && i === activeIdx) {
-                    displayCtx.globalAlpha *= 0.5;
-                    displayCtx.translate(transformState.x, transformState.y);
-                    displayCtx.rotate(transformState.rotation);
-                    displayCtx.scale(transformState.scale, transformState.scale);
-                    displayCtx.drawImage(transformState.originalCanvas, -INTERNAL_RES/2, -INTERNAL_RES/2);
-                } else if (layer.clippingMask) {
-                    const baseLayer = findClippingBase(i);
-                    if (baseLayer) {
-                        const tempCanvas = document.createElement('canvas');
-                        tempCanvas.width = tempCanvas.height = INTERNAL_RES;
-                        const tctx = tempCanvas.getContext('2d');
-                        tctx.drawImage(layer.canvas, 0, 0);
-                        if (isPainting && i === activeIdx) {
-                            tctx.globalCompositeOperation = mode === 'eraser' ? 'destination-out' : 'source-over';
-                            tctx.drawImage(activeStrokeCanvas, 0, 0);
-                        }
-                        tctx.globalCompositeOperation = 'destination-in';
-                        tctx.drawImage(baseLayer.canvas, 0, 0);
-                        displayCtx.globalCompositeOperation = layer.blendMode;
-                        displayCtx.drawImage(tempCanvas, 0, 0);
-                    } else { displayCtx.globalCompositeOperation = layer.blendMode; displayCtx.drawImage(layer.canvas, 0, 0); }
-                } else {
-                    if (isPainting && i === activeIdx && mode === 'eraser') {
-                        const eb = document.createElement('canvas'); eb.width = eb.height = INTERNAL_RES;
-                        const ectx = eb.getContext('2d'); ectx.drawImage(layer.canvas, 0, 0);
-                        ectx.globalCompositeOperation = 'destination-out';
-                        ectx.drawImage(activeStrokeCanvas, 0, 0);
-                        displayCtx.globalCompositeOperation = layer.blendMode;
-                        displayCtx.drawImage(eb, 0, 0);
-                    } else {
-                        displayCtx.globalCompositeOperation = layer.blendMode;
-                        displayCtx.drawImage(layer.canvas, 0, 0);
-                        if (isPainting && i === activeIdx) { displayCtx.drawImage(activeStrokeCanvas, 0, 0); }
-                    }
-                }
-                displayCtx.restore();
-            }
-        }
-
-
-        function start(e) {
-            if (e.pointerType === 'pen' || e.pointerType === 'mouse') { stack.setPointerCapture(e.pointerId); }
-            const pos = getPos(e);
-            lastX = pos.x; lastY = pos.y;
-            if (isAltDown && (mode === 'brush' || mode === 'bucket')) { sampleColorAt(pos); return; }
-            if (isTransforming) {
-                const handle = getTransformHandle(pos.x, pos.y);
-                transformState.activeHandle = handle; transformState.startMouse = { x: pos.x, y: pos.y }; transformState.initialState = { ...transformState };
-                return;
-            }
-            if (mode === 'bucket') { saveUndo(); floodFill(pos.x, pos.y); }
-            else {
-                isPainting = true; saveUndo(); activeStrokeCtx.clearRect(0,0,INTERNAL_RES, INTERNAL_RES);
-                if (mode === 'smudge') {
-                    smudgeBuffer = document.createElement('canvas'); smudgeBuffer.width = smudgeBuffer.height = brushSize;
-                    smudgeBuffer.getContext('2d').drawImage(layers[activeIdx].canvas, pos.x - brushSize/2, pos.y - brushSize/2, brushSize, brushSize, 0, 0, brushSize, brushSize);
-                }
-                draw(e); renderStack();
-            }
-        }
-
-
-        function move(e) {
-            const pos = getPos(e);
-            if (isAltDown && isPainting) sampleColorAt(pos);
-            if (isTransforming) {
-                if (transformState.activeHandle) { updateTransform(pos); renderStack(); } else { hoveredHandle = getTransformHandle(pos.x, pos.y); }
-            } else if (isPainting) { draw(e); renderStack(); }
-            updateCursor(pos); lastX = pos.x; lastY = pos.y;
-        }
-
-
-        function stop() { if (isTransforming) transformState.activeHandle = null; if (isPainting) { commitActiveStroke(); isPainting = false; smudgeBuffer = null; renderStack(); } }
-
-
-        function commitActiveStroke() {
-            const layer = layers[activeIdx]; if (!layer) return;
-            layer.ctx.save();
-            if (mode === 'eraser') layer.ctx.globalCompositeOperation = 'destination-out';
-            else if (layer.alphaLocked) layer.ctx.globalCompositeOperation = 'source-atop';
-            else layer.ctx.globalCompositeOperation = 'source-over';
-            layer.ctx.drawImage(activeStrokeCanvas, 0, 0); layer.ctx.restore();
-            activeStrokeCtx.clearRect(0,0,INTERNAL_RES, INTERNAL_RES);
-        }
-
-
-        function getTransformHandle(x, y) {
-            const s = transformState; const vs = INTERNAL_RES / stack.getBoundingClientRect().width; const threshold = 25 * vs;
-            const hw = (s.width / 2) * s.scale; const hh = (s.height / 2) * s.scale;
-            const rot = { x: s.x + 0 * Math.cos(s.rotation) - (-hh - 50 * vs) * Math.sin(s.rotation), y: s.y + 0 * Math.sin(s.rotation) + (-hh - 50 * vs) * Math.cos(s.rotation) };
-            if (Math.hypot(x - rot.x, y - rot.y) < threshold) return 'rotate';
-            const corners = [ { id: 'tl', x: s.x - hw, y: s.y - hh }, { id: 'tr', x: s.x + hw, y: s.y - hh }, { id: 'bl', x: s.x - hw, y: s.y + hh }, { id: 'br', x: s.x + hw, y: s.y + hh } ];
-            for (const c of corners) {
-                const rad = s.rotation; const dx = c.x - s.x; const dy = c.y - s.y;
-                const px = s.x + dx * Math.cos(rad) - dy * Math.sin(rad);
-                const py = s.y + dx * Math.sin(rad) + dy * Math.cos(rad);
-                if (Math.hypot(x - px, y - py) < threshold) return c.id;
-            }
-            const rad = -s.rotation; const dx = (x - s.x) * Math.cos(rad) - (y - s.y) * Math.sin(rad); const dy = (x - s.x) * Math.sin(rad) + (y - s.y) * Math.cos(rad);
-            if (Math.abs(dx) < hw && Math.abs(dy) < hh) return 'move';
-            return null;
-        }
-
-
-        function updateTransform(pos) {
-            const s = transformState; const init = s.initialState; const dx = pos.x - s.startMouse.x; const dy = pos.y - s.startMouse.y;
-            if (s.activeHandle === 'move') { s.x = init.x + dx; s.y = init.y + dy; }
-            else if (s.activeHandle === 'rotate') { s.rotation = init.rotation + (Math.atan2(pos.y - s.y, pos.x - s.x) - Math.atan2(s.startMouse.y - s.y, s.startMouse.x - s.x)); }
-            else if (['tl', 'tr', 'bl', 'br'].includes(s.activeHandle)) { s.scale = Math.max(0.01, init.scale * (Math.hypot(pos.x - s.x, pos.y - s.y) / Math.hypot(s.startMouse.x - s.x, s.startMouse.y - s.y))); }
-        }
-
-
-        function updateCursor(pos) {
-            curCtx.clearRect(0, 0, INTERNAL_RES, INTERNAL_RES);
-            const rect = stack.getBoundingClientRect(); if (pos.rawX < rect.left || pos.rawX > rect.right || pos.rawY < rect.top || pos.rawY > rect.bottom) return;
-            curCtx.save(); const vs = INTERNAL_RES / rect.width;
-            if (isTransforming) {
-                const s = transformState; curCtx.save(); curCtx.translate(s.x, s.y); curCtx.rotate(s.rotation);
-                const hw = (s.width / 2) * s.scale; const hh = (s.height / 2) * s.scale;
-                curCtx.strokeStyle = 'rgba(211, 142, 63, 0.5)'; curCtx.lineWidth = vs; curCtx.strokeRect(-hw, -hh, hw * 2, hh * 2);
-                [[-hw, -hh], [hw, -hh], [-hw, hh], [hw, hh]].forEach(p => { curCtx.fillStyle = '#D38E3F'; curCtx.fillRect(p[0]-7*vs, p[1]-7*vs, 14*vs, 14*vs); });
-                curCtx.restore();
-            } else {
-                curCtx.translate(pos.x, pos.y); curCtx.strokeStyle = 'rgba(255, 255, 255, 0.6)'; curCtx.lineWidth = vs;
-                if (brushTip === 'round') { curCtx.beginPath(); curCtx.arc(0, 0, brushSize / 2, 0, Math.PI * 2); curCtx.stroke(); }
-                else { curCtx.strokeRect(-brushSize/2, -brushSize/6, brushSize, brushSize/3); }
-            }
-            curCtx.restore();
-        }
-
-
-        function draw(e) {
-            const pos = getPos(e); const layer = layers[activeIdx]; if (!layer || !layer.visible) return;
-            let finalAlpha = opacity; if (usePressure && e.pressure !== undefined && e.pressure > 0) finalAlpha *= e.pressure;
-            activeStrokeCtx.save();
-            activeStrokeCtx.strokeStyle = activeStrokeCtx.fillStyle = (mode === 'eraser') ? 'white' : color;
-            activeStrokeCtx.globalAlpha = finalAlpha;
-            if (brushTip === 'round') {
-                activeStrokeCtx.lineCap = 'round'; activeStrokeCtx.lineJoin = 'round'; activeStrokeCtx.lineWidth = brushSize;
-                activeStrokeCtx.beginPath(); activeStrokeCtx.moveTo(lastX, lastY); activeStrokeCtx.lineTo(pos.x, pos.y); activeStrokeCtx.stroke();
-            } else {
-                const dist = Math.hypot(pos.x - lastX, pos.y - lastY); const angle = Math.atan2(pos.y - lastY, pos.x - lastX);
-                const step = Math.max(1, brushSize / 20);
-                for (let i = 0; i <= dist; i += step) {
-                    const x = lastX + Math.cos(angle) * i; const y = lastY + Math.sin(angle) * i;
-                    activeStrokeCtx.save(); activeStrokeCtx.translate(x, y); activeStrokeCtx.fillRect(-brushSize/2, -brushSize/6, brushSize, brushSize/3); activeStrokeCtx.restore();
-                }
-            }
-            activeStrokeCtx.restore();
-        }
-
-
-        function floodFill(x,y) { const l = layers[activeIdx]; l.ctx.fillStyle = color; l.ctx.globalAlpha = opacity; l.ctx.fillRect(0,0,INTERNAL_RES,INTERNAL_RES); renderStack(); }
-        function saveUndo() { const l = layers[activeIdx]; if(l) undoStack.push({ idx: activeIdx, data: l.ctx.getImageData(0,0,INTERNAL_RES, INTERNAL_RES) }); if(undoStack.length > 20) undoStack.shift(); }
-        function undo() { if(undoStack.length) { const s = undoStack.pop(); layers[s.idx].ctx.putImageData(s.data, 0,0); renderStack(); } }
-        function exportCanvas() { const a = document.createElement('a'); a.download = 'chroma.png'; a.href = displayCanvas.toDataURL(); a.click(); }
-        function setMode(m) { mode = m; document.querySelectorAll('.tool-btn').forEach(b => b.classList.toggle('active', b.id === `btn-${m}`)); }
-        function setBrushTip(t) { brushTip = t; document.querySelectorAll('[id^=btn-tip]').forEach(b => b.classList.toggle('active', b.id === `btn-tip-${t}`)); }
-
-
-        function getPos(e) {
-            const rect = stack.getBoundingClientRect();
-            let x = e.clientX - (rect.left + rect.width / 2), y = e.clientY - (rect.top + rect.height / 2);
-            const rad = -(rotation * Math.PI) / 180;
-            let rotX = x * Math.cos(rad) - y * Math.sin(rad), rotY = x * Math.sin(rad) + y * Math.cos(rad);
-            if (flipH) rotX = -rotX;
-            const factor = INTERNAL_RES / (800 * zoom);
-            return { x: rotX * factor + INTERNAL_RES/2, y: rotY * factor + INTERNAL_RES/2, rawX: e.clientX, rawY: e.clientY };
-        }
-
-
-        function setupHSVSystem() {
-            const box = document.getElementById('hsvBox');
-            const upd = (e) => {
-                const r = box.getBoundingClientRect();
-                curS = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * 100;
-                curV = (1 - Math.max(0, Math.min(1, (e.clientY - r.top) / r.height))) * 100;
-                finalizeColor();
-            };
-            box.addEventListener('pointerdown', (e) => {
-                box.setPointerCapture(e.pointerId); upd(e);
-                const mv = (pe) => upd(pe); box.addEventListener('pointermove', mv);
-                box.addEventListener('pointerup', () => box.removeEventListener('pointermove', mv), { once: true });
-            });
-            document.getElementById('hueBar').oninput = (e) => { curH = e.target.value; finalizeColor(); };
-        }
-
-
-        function finalizeColor() {
-            const h = curH, s = curS/100, v = curV/100;
-            const f = n => v * (1 - s * Math.max(0, Math.min((n + h / 60) % 6, 4 - (n + h / 60) % 6, 1)));
-            const r = Math.round(f(5) * 255), g = Math.round(f(3) * 255), b = Math.round(f(1) * 255);
-            color = "#" + [r,g,b].map(x => x.toString(16).padStart(2, '0')).join('');
-            colorPreview.style.backgroundColor = color;
-            hexDisplay.innerText = color.toUpperCase();
-            document.getElementById('hsvBox').style.backgroundColor = `hsl(${curH}, 100%, 50%)`;
-            document.getElementById('hsvPointer').style.left = curS + '%';
-            document.getElementById('hsvPointer').style.top = (100 - curV) + '%';
-        }
-
-
-        function applyAdjustment(type) {
-            const l = layers[activeIdx];
-            origData = l.ctx.getImageData(0,0,INTERNAL_RES, INTERNAL_RES);
-            document.getElementById('adjPanel').classList.remove('hidden');
-            const ctrl = document.getElementById('adjControls'); ctrl.innerHTML = '';
-            if(type === 'hsb') {
-                [['Hue',-180,180,0,'h'],['Saturation',-100,100,0,'s'],['Brightness',-100,100,0,'v']].forEach(s => createSlider(...s));
-            } else {
-                [['Red',-100,100,0,'r'],['Green',-100,100,0,'g'],['Blue',-100,100,0,'bl']].forEach(s => createSlider(...s));
-            }
-        }
-
-
-        function createSlider(l, min, max, v, id) {
-            const d = document.createElement('div');
-            d.innerHTML = `<div class="flex justify-between mb-2 text-[9px] uppercase text-gray-500 font-bold"><span>${l}</span><span id="val-${id}">0</span></div><input type="range" id="adj-${id}" min="${min}" max="${max}" value="${v}" class="w-full">`;
-            document.getElementById('adjControls').appendChild(d);
-            d.querySelector('input').oninput = (e) => { document.getElementById(`val-${id}`).innerText = e.target.value; runAdj(); };
-        }
-
-
-        function runAdj() {
-            const data = new ImageData(new Uint8ClampedArray(origData.data), INTERNAL_RES, INTERNAL_RES);
-            const p = data.data, isHSL = !!document.getElementById('adj-h');
-            const hS = parseInt(document.getElementById('adj-h')?.value || 0), sS = parseInt(document.getElementById('adj-s')?.value || 0), vS = parseInt(document.getElementById('adj-v')?.value || 0);
-            const rS = parseInt(document.getElementById('adj-r')?.value || 0), gS = parseInt(document.getElementById('adj-g')?.value || 0), blS = parseInt(document.getElementById('adj-bl')?.value || 0);
-            for(let i=0; i<p.length; i+=4) {
-                if (p[i+3] === 0) continue;
-                if (isHSL) {
-                    let [h, s, v] = rgbToHsv(p[i], p[i+1], p[i+2]);
-                    h = (h + hS + 360) % 360; s = Math.max(0, Math.min(100, s + sS)); v = Math.max(0, Math.min(100, v + vS));
-                    const [nr, ng, nb] = hsvToRgb(h, s, v); p[i] = nr; p[i+1] = ng; p[i+2] = nb;
-                } else {
-                    p[i] = Math.max(0, Math.min(255, p[i] + rS)); p[i+1] = Math.max(0, Math.min(255, p[i+1] + gS)); p[i+2] = Math.max(0, Math.min(255, p[i+2] + blS));
-                }
-            }
-            layers[activeIdx].ctx.putImageData(data, 0, 0); renderStack();
-        }
-
-
-        function hsvToRgb(h, s, v) {
-            h /= 360; s /= 100; v /= 100;
-            const f = n => v * (1 - s * Math.max(0, Math.min((n + h * 6) % 6, 4 - (n + h * 6) % 6, 1)));
-            return [Math.round(f(5) * 255), Math.round(f(3) * 255), Math.round(f(1) * 255)];
-        }
-
-
-        function confirmAdj() { document.getElementById('adjPanel').classList.add('hidden'); }
-        function cancelAdj() { layers[activeIdx].ctx.putImageData(origData, 0, 0); document.getElementById('adjPanel').classList.add('hidden'); renderStack(); }
-
-
-        init();
-    </script>
+        })
+    };
+}
+
+function saveUndo() {
+    redoStack.length = 0; 
+    const snapshot = captureState();
+    undoStack.push(snapshot);
+    if (undoStack.length > 20) undoStack.shift();
+}
+
+function undo() {
+    if (!undoStack.length) return;
+    const currentState = captureState();
+    redoStack.push(currentState);
+    if (redoStack.length > 20) redoStack.shift();
+    const snapshot = undoStack.pop();
+    layers = snapshot.layers;
+    activeIdx = snapshot.activeIdx;
+    refreshUI();
+    renderStack();
+}
+
+function redo() {
+    if (!redoStack.length) return;
+    const currentState = captureState();
+    undoStack.push(currentState);
+    if (undoStack.length > 20) undoStack.shift();
+    const snapshot = redoStack.pop();
+    layers = snapshot.layers;
+    activeIdx = snapshot.activeIdx;
+    refreshUI();
+    renderStack();
+}
+
+function exportCanvas() { const a = document.createElement('a'); a.download = 'chroma.png'; a.href = displayCanvas.toDataURL(); a.click(); }
+function setMode(m) { mode = m; document.querySelectorAll('.tool-btn').forEach(b => b.classList.toggle('active', b.id === `btn-${m}`)); }
+function setBrushTip(t) { brushTip = t; document.querySelectorAll('[id^=btn-tip]').forEach(b => b.classList.toggle('active', b.id === `btn-tip-${t}`)); }
+
+function getPos(e) {
+const rect = stack.getBoundingClientRect();
+let x = e.clientX - (rect.left + rect.width / 2), y = e.clientY - (rect.top + rect.height / 2);
+const rad = -(rotation * Math.PI) / 180;
+let rotX = x * Math.cos(rad) - y * Math.sin(rad), rotY = x * Math.sin(rad) + y * Math.cos(rad);
+if (flipH) rotX = -rotX;
+const factor = INTERNAL_RES / (800 * zoom);
+return { x: rotX * factor + INTERNAL_RES/2, y: rotY * factor + INTERNAL_RES/2, rawX: e.clientX, rawY: e.clientY };
+}
+
+function setupHSVSystem() {
+const box = document.getElementById('hsvBox');
+const upd = (e) => {
+const r = box.getBoundingClientRect();
+curS = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * 100;
+curV = (1 - Math.max(0, Math.min(1, (e.clientY - r.top) / r.height))) * 100;
+finalizeColor();
+};
+box.addEventListener('pointerdown', (e) => {
+box.setPointerCapture(e.pointerId); upd(e);
+const mv = (pe) => upd(pe); box.addEventListener('pointermove', mv);
+box.addEventListener('pointerup', () => box.removeEventListener('pointermove', mv), { once: true });
+});
+document.getElementById('hueBar').oninput = (e) => { curH = e.target.value; finalizeColor(); };
+document.getElementById('slider-h').oninput = (e) => { curH = e.target.value; finalizeColor(); };
+document.getElementById('slider-s').oninput = (e) => { curS = e.target.value; finalizeColor(); };
+document.getElementById('slider-v').oninput = (e) => { curV = e.target.value; finalizeColor(); };
+}
+
+function finalizeColor() {
+    const h = curH, s = curS/100, v = curV/100;
+    const f = n => v * (1 - s * Math.max(0, Math.min((n + h / 60) % 6, 4 - (n + h / 60) % 6, 1)));
+    const r = Math.round(f(5) * 255), g = Math.round(f(3) * 255), b = Math.round(f(1) * 255);
+    color = `rgb(${r},${g},${b})`;
+    colorPreview.style.backgroundColor = color;
+    const hex = "#" + [r,g,b].map(x => x.toString(16).padStart(2, '0')).join('');
+    hexDisplay.innerText = hex.toUpperCase();
+    document.getElementById('hsvBox').style.backgroundColor = `hsl(${curH}, 100%, 50%)`;
+    document.getElementById('hsvPointer').style.left = curS + '%';
+    document.getElementById('hsvPointer').style.top = (100 - curV) + '%';
+    document.getElementById('hueBar').value = curH;
+    document.getElementById('slider-h').value = curH;
+    document.getElementById('slider-s').value = curS;
+    document.getElementById('slider-v').value = curV;
+    document.getElementById('hLabel').innerText = Math.round(curH);
+    document.getElementById('sLabel').innerText = Math.round(curS) + '%';
+    document.getElementById('vLabel').innerText = Math.round(curV) + '%';
+}
+
+function applyAdjustment(type) {
+saveUndo();
+const l = layers[activeIdx];
+origData = l.ctx.getImageData(0,0,INTERNAL_RES, INTERNAL_RES);
+document.getElementById('adjPanel').classList.remove('hidden');
+const ctrl = document.getElementById('adjControls'); ctrl.innerHTML = '';
+if(type === 'hsb') {
+[['Hue',-180,180,0,'h'],['Saturation',-100,100,0,'s'],['Brightness',-100,100,0,'v']].forEach(s => createSlider(...s));
+} else {
+[['Red',-100,100,0,'r'],['Green',-100,100,0,'g'],['Blue',-100,100,0,'bl']].forEach(s => createSlider(...s));
+}
+}
+
+function createSlider(l, min, max, v, id) {
+const d = document.createElement('div');
+d.innerHTML = `<div class="flex justify-between mb-2 text-[9px] uppercase text-gray-500 font-bold"><span>${l}</span><span id="val-${id}">0</span></div><input type="range" id="adj-${id}" min="${min}" max="${max}" value="${v}" class="w-full">`;
+document.getElementById('adjControls').appendChild(d);
+d.querySelector('input').oninput = (e) => { document.getElementById(`val-${id}`).innerText = e.target.value; runAdj(); };
+}
+
+function runAdj() {
+const data = new ImageData(new Uint8ClampedArray(origData.data), INTERNAL_RES, INTERNAL_RES);
+const p = data.data, isHSL = !!document.getElementById('adj-h');
+const hS = parseInt(document.getElementById('adj-h')?.value || 0), sS = parseInt(document.getElementById('adj-s')?.value || 0), vS = parseInt(document.getElementById('adj-v')?.value || 0);
+const rS = parseInt(document.getElementById('adj-r')?.value || 0), gS = parseInt(document.getElementById('adj-g')?.value || 0), blS = parseInt(document.getElementById('adj-bl')?.value || 0);
+for(let i=0; i<p.length; i+=4) {
+if (p[i+3] === 0) continue;
+if (isHSL) {
+let [h, s, v] = rgbToHsv(p[i], p[i+1], p[i+2]);
+h = (h + hS + 360) % 360; s = Math.max(0, Math.min(100, s + sS)); v = Math.max(0, Math.min(100, v + vS));
+const [nr, ng, nb] = hsvToRgb(h, s, v); p[i] = nr; p[i+1] = ng; p[i+2] = nb;
+} else {
+p[i] = Math.max(0, Math.min(255, p[i] + rS)); p[i+1] = Math.max(0, Math.min(255, p[i+1] + gS)); p[i+2] = Math.max(0, Math.min(255, p[i+2] + blS));
+}
+}
+layers[activeIdx].ctx.putImageData(data, 0, 0); renderStack();
+}
+
+function hsvToRgb(h, s, v) {
+h /= 360; s /= 100; v /= 100;
+const f = n => v * (1 - s * Math.max(0, Math.min((n + h * 6) % 6, 4 - (n + h * 6) % 6, 1)));
+return [Math.round(f(5) * 255), Math.round(f(3) * 255), Math.round(f(1) * 255)];
+}
+
+function confirmAdj() { document.getElementById('adjPanel').classList.add('hidden'); }
+function cancelAdj() { layers[activeIdx].ctx.putImageData(origData, 0, 0); document.getElementById('adjPanel').classList.add('hidden'); renderStack(); }
+
+init();
+</script>
 </body>
 </html>
