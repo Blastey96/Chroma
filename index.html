@@ -43,7 +43,7 @@ box-shadow: 0 0 50px rgba(0,0,0,0.5);
 background: white;
 cursor: none;
 line-height: 0;
-transition: transform 0.1s ease-out;
+/* Removed transition to prevent alignment lag during zoom/rotate */
 transform-origin: center center;
 touch-action: none;
 }
@@ -68,16 +68,18 @@ opacity: 0.8;
 .clipping-indent { margin-left: 12px; border-left: 2px solid #D38E3F; padding-left: 8px; }
 .hsb-track { height: 6px; border-radius: 3px; appearance: none; background: var(--input-border); margin: 8px 0; width: 100%; }
 .hsb-track::-webkit-slider-thumb { appearance: none; width: 12px; height: 12px; background: var(--text-main); border-radius: 50%; cursor: pointer; }
-select { 
-    background: var(--input-bg); 
-    color: var(--text-main); 
-    border: 1px solid var(--input-border); 
-    font-size: 9px; 
-    padding: 2px 4px; 
-    border-radius: 4px; 
-    outline: none; 
-    font-family: 'Inter', sans-serif;
-    font-weight: 700;
+select {
+background: var(--input-bg);
+color: var(--text-main);
+border: 1px solid var(--input-border);
+font-size: 10px;
+padding: 4px 8px;
+border-radius: 6px;
+outline: none;
+font-family: 'Inter', sans-serif;
+font-weight: 700;
+text-transform: uppercase;
+letter-spacing: 0.05em;
 }
 select:focus { border-color: #D38E3F; }
 .layer-opacity-slider { height: 4px; width: 100%; }
@@ -85,23 +87,22 @@ select:focus { border-color: #D38E3F; }
 .light-mode .text-gray-500 { color: var(--text-header); }
 .light-mode .text-gray-400 { color: var(--text-dim); }
 .light-mode .text-gray-600 { color: var(--text-main); }
-
 .tool-popup {
-    display: none;
-    position: absolute;
-    left: 100%;
-    margin-left: 10px;
-    background: var(--bg-panel);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 8px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    z-index: 100;
+display: none;
+position: absolute;
+left: 100%;
+margin-left: 10px;
+background: var(--bg-panel);
+border: 1px solid var(--border-color);
+border-radius: 12px;
+padding: 8px;
+box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+z-index: 100;
 }
 .tool-btn:active + .tool-popup, .tool-popup:hover {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+display: flex;
+flex-direction: column;
+gap: 4px;
 }
 .color-preview-active { border-color: #D38E3F !important; box-shadow: 0 0 10px rgba(211, 142, 63, 0.4) !important; }
 </style>
@@ -140,30 +141,30 @@ CHROMA
 </div>
 <!-- Global Selection Control (Appears whenever a selection is active) -->
 <div id="selectionGlobalUI" class="hidden items-center gap-3 border-l border-white/10 pl-6 h-8">
-    <button onclick="clearSelection()" class="bg-[#D38E3F]/10 hover:bg-[#D38E3F]/20 text-[#D38E3F] border border-[#D38E3F]/30 px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all">
-        Deselect
-    </button>
+<button onclick="clearSelection()" class="bg-[#D38E3F]/10 hover:bg-[#D38E3F]/20 text-[#D38E3F] border border-[#D38E3F]/30 px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all">
+Deselect
+</button>
 </div>
 <!-- Gradient Specific Options (Hidden by default) -->
 <div id="gradientOptions" class="hidden items-center gap-3 border-l border-white/10 pl-6 h-8">
-    <div class="flex flex-col">
-        <span class="text-[8px] uppercase text-gray-500 font-bold mb-0.5">Gradient Type</span>
-        <select id="gradientTypeSelect" onchange="gradientType = this.value">
-            <option value="fg-bg">Foreground to Background</option>
-            <option value="bg-fg">Background to Foreground</option>
-            <option value="fg-trans">Foreground to Transparent</option>
-            <option value="bg-trans">Background to Transparent</option>
-        </select>
-    </div>
+<div class="flex flex-col">
+<span class="text-[8px] uppercase text-gray-500 font-bold mb-0.5">Gradient Type</span>
+<select id="gradientTypeSelect" onchange="gradientType = this.value">
+<option value="fg-bg">Foreground to Background</option>
+<option value="bg-fg">Background to Foreground</option>
+<option value="fg-trans">Foreground to Transparent</option>
+<option value="bg-trans">Background to Transparent</option>
+</select>
+</div>
 </div>
 <!-- Lasso Specific Options (Hidden by default) -->
 <div id="lassoOptions" class="hidden items-center gap-3 border-l border-white/10 pl-6 h-8">
-    <div class="flex flex-col w-28">
-        <div class="flex justify-between text-[8px] uppercase text-gray-500 font-bold mb-0.5">
-            <span>Feather</span><span id="lassoFeatherVal">0px</span>
-        </div>
-        <input type="range" id="lassoFeatherSlider" min="0" max="100" value="0" oninput="updateLassoFeather(this.value)">
-    </div>
+<div class="flex flex-col w-28">
+<div class="flex justify-between text-[8px] uppercase text-gray-500 font-bold mb-0.5">
+<span>Feather</span><span id="lassoFeatherVal">0px</span>
+</div>
+<input type="range" id="lassoFeatherSlider" min="0" max="100" value="0" oninput="updateLassoFeather(this.value)">
+</div>
 </div>
 <div class="flex items-center gap-4 border-l border-white/10 pl-6 h-8">
 <div class="flex items-center gap-1 bg-black/5 dark:bg-white/5 rounded-lg p-1">
@@ -183,25 +184,25 @@ CHROMA
 <div class="flex items-center gap-6 border-l border-white/10 pl-6">
 <div class="flex flex-col w-32">
 <div class="flex justify-between items-center text-[9px] uppercase text-gray-500 font-bold mb-1">
-    <div class="flex items-center gap-2">
-        <span>Size</span>
-        <button id="btn-pressure-size" onclick="togglePressureSize()" class="text-[10px] text-gray-500 hover:text-[#D38E3F] transition-colors" title="Toggle Pen Pressure Size">
-            <i class="fas fa-compress-arrows-alt"></i>
-        </button>
-    </div>
-    <span id="sizeVal">30px</span>
+<div class="flex items-center gap-2">
+<span>Size</span>
+<button id="btn-pressure-size" onclick="togglePressureSize()" class="text-[10px] text-gray-500 hover:text-[#D38E3F] transition-colors" title="Toggle Pen Pressure Size">
+<i class="fas fa-compress-arrows-alt"></i>
+</button>
+</div>
+<span id="sizeVal">30px</span>
 </div>
 <input type="range" id="sizeSlider" min="1" max="300" value="30">
 </div>
 <div class="flex flex-col w-36">
 <div class="flex justify-between items-center text-[9px] uppercase text-gray-500 font-bold mb-1">
-    <div class="flex items-center gap-2">
-        <span>Brush Opacity</span>
-        <button id="btn-pressure" onclick="togglePressure()" class="text-[10px] text-gray-500 hover:text-[#D38E3F] transition-colors" title="Toggle Pen Pressure Opacity">
-            <i class="fas fa-fingerprint"></i>
-        </button>
-    </div>
-    <span id="opacityVal">100%</span>
+<div class="flex items-center gap-2">
+<span>Brush Opacity</span>
+<button id="btn-pressure" onclick="togglePressure()" class="text-[10px] text-gray-500 hover:text-[#D38E3F] transition-colors" title="Toggle Pen Pressure Opacity">
+<i class="fas fa-fingerprint"></i>
+</button>
+</div>
+<span id="opacityVal">100%</span>
 </div>
 <input type="range" id="opacitySlider" min="1" max="100" value="100">
 </div>
@@ -220,22 +221,22 @@ CHROMA
 <i class="fas fa-paint-brush"></i>
 </button>
 <div class="relative flex flex-col items-center">
-    <button id="btn-bucket" class="tool-btn p-3 rounded-xl transition-all text-gray-500" 
-        onpointerdown="startToolHold('bucket')" onpointerup="endToolHold('bucket')"
-        onclick="setMode(lastBucketTool)" title="Paint Bucket / Gradient (G)">
-        <i id="bucket-icon" class="fas fa-fill-drip"></i>
-    </button>
-    <!-- Hidden Switch Popup -->
-    <div id="bucket-popup" class="tool-popup hidden">
-        <button onclick="setMode('bucket')" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F]"><i class="fas fa-fill-drip"></i></button>
-        <button onclick="setMode('gradient')" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F]"><i class="fas fa-stream"></i></button>
-    </div>
+<button id="btn-bucket" class="tool-btn p-3 rounded-xl transition-all text-gray-500"
+onpointerdown="startToolHold('bucket')" onpointerup="endToolHold('bucket')"
+onclick="setMode(lastBucketTool)" title="Paint Bucket / Gradient (G)">
+<i id="bucket-icon" class="fas fa-fill-drip"></i>
+</button>
+<!-- Hidden Switch Popup -->
+<div id="bucket-popup" class="tool-popup hidden">
+<button onclick="setMode('bucket')" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F]"><i class="fas fa-fill-drip"></i></button>
+<button onclick="setMode('gradient')" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F]"><i class="fas fa-stream"></i></button>
+</div>
 </div>
 <button id="btn-lasso" class="tool-btn p-3 rounded-xl transition-all text-gray-500" onclick="setMode('lasso')" title="Lasso Selection (L)">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12,2A10,10,0,0,0,2,12a10,10,0,0,0,10,10,10,10,0,0,0,10-10A10,10,0,0,0,12,2Zm0,18a8,8,0,1,1,8-8A8,8,0,0,1,12,20Zm4.5-9a1.5,1.5,0,1,1-1.5,1.5A1.5,1.5,0,0,1,16.5,11Zm-9,0a1.5,1.5,0,1,1-1.5,1.5A1.5,1.5,0,0,1,7.5,11Zm4.5,5a1.5,1.5,0,1,1,0-3,1.5,1.5,0,0,1,0,3Z" opacity="0.3"/>
-        <path d="M12,5c-3.86,0-7,3.14-7,7s3.14,7,7,7,7-3.14,7-7S15.86,5,12,5Zm4,7a2,2,0,1,1-2-2A2,2,0,0,1,16,12Zm-8,0a2,2,0,1,1-2-2A2,2,0,0,1,8,12Z"/>
-    </svg>
+<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+<path d="M12,2A10,10,0,0,0,2,12a10,10,0,0,0,10,10,10,10,0,0,0,10-10A10,10,0,0,0,12,2Zm0,18a8,8,0,1,1,8-8A8,8,0,0,1,12,20Zm4.5-9a1.5,1.5,0,1,1-1.5,1.5A1.5,1.5,0,0,1,16.5,11Zm-9,0a1.5,1.5,0,1,1-1.5,1.5A1.5,1.5,0,0,1,7.5,11Zm4.5,5a1.5,1.5,0,1,1,0-3,1.5,1.5,0,0,1,0,3Z" opacity="0.3"/>
+<path d="M12,5c-3.86,0-7,3.14-7,7s3.14,7,7,7,7-3.14,7-7S15.86,5,12,5Zm4,7a2,2,0,1,1-2-2A2,2,0,0,1,16,12Zm-8,0a2,2,0,1,1-2-2A2,2,0,0,1,8,12Z"/>
+</svg>
 </button>
 <button id="btn-eraser" class="tool-btn p-3 rounded-xl transition-all text-gray-500" onclick="setMode('eraser')" title="Eraser (E)">
 <i class="fas fa-eraser"></i>
@@ -250,14 +251,14 @@ CHROMA
 <button id="btn-tip-flat" class="tool-btn p-1.5 rounded-md text-[10px] text-gray-500" onclick="setBrushTip('flat')">
 <i class="fas fa-square"></i>
 </button>
-<button id="btn-brush-settings" class="tool-btn p-1.5 rounded-md text-[10px] text-gray-500" onclick="toggleBrushSettings()" title="Krita Brush Engine Settings">
+<button id="btn-brush-settings" class="tool-btn p-1.5 rounded-md text-[10px] text-gray-500" onclick="toggleBrushSettings()" title="Brush Settings">
 <i class="fas fa-cog"></i>
 </button>
 <div class="w-8 h-px bg-black/10 dark:bg-white/10"></div>
 <!-- Overlapping Primary/Secondary Colors -->
 <div class="relative w-8 h-10">
-    <div id="secondaryColorPreview" onclick="setActiveColorTarget('secondary')" class="absolute right-0 bottom-0 w-6 h-6 rounded-md border border-white/10 cursor-pointer shadow-lg z-10" style="background-color: #ffffff;" title="Secondary Color (Click to edit)"></div>
-    <div id="activeColorPreview" onclick="setActiveColorTarget('primary')" class="absolute left-0 top-0 w-6 h-6 rounded-md border-2 border-white/20 shadow-xl z-20 color-preview-active" style="background-color: #D38E3F;" title="Primary Color (Click to edit)"></div>
+<div id="secondaryColorPreview" onclick="setActiveColorTarget('secondary')" class="absolute right-0 bottom-0 w-6 h-6 rounded-md border border-white/10 cursor-pointer shadow-lg z-10" style="background-color: #ffffff;" title="Secondary Color (Click to edit)"></div>
+<div id="activeColorPreview" onclick="setActiveColorTarget('primary')" class="absolute left-0 top-0 w-6 h-6 rounded-md border-2 border-white/20 shadow-xl z-20 color-preview-active" style="background-color: #D38E3F;" title="Primary Color (Click to edit)"></div>
 </div>
 </aside>
 <main id="viewport" class="flex-1 relative canvas-container flex items-center justify-center overflow-auto">
@@ -267,12 +268,15 @@ CHROMA
 </div>
 <!-- Cursor Canvas moved to a HUD level inside the main viewport area -->
 <canvas id="cursorCanvas"></canvas>
-
 <!-- BRUSH SETTINGS PANEL -->
 <div id="brushSettingsPanel" class="draggable-panel hidden left-20 top-20 w-72 ui-panel rounded-3xl p-5 shadow-2xl border">
 <div class="panel-header flex justify-between items-center mb-4 text-[9px] font-bold uppercase text-[#D38E3F] tracking-wider">
-<span>Brush Engine Settings</span>
+<span>Brush Settings</span>
 <i class="fas fa-grip-lines"></i>
+</div>
+<!-- NEW Brush Preview Section -->
+<div class="w-full h-20 bg-black/20 rounded-xl mb-4 overflow-hidden flex items-center justify-center">
+<canvas id="brushPreviewCanvas" width="260" height="80"></canvas>
 </div>
 <div class="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
 <div>
@@ -401,12 +405,10 @@ const activeStrokeCanvas = document.getElementById('activeStrokeCanvas');
 const activeStrokeCtx = activeStrokeCanvas.getContext('2d');
 const cursorCanvas = document.getElementById('cursorCanvas');
 const curCtx = cursorCanvas.getContext('2d');
-
 // Selection mask offscreen canvas for feathering support
 const maskCanvas = document.createElement('canvas');
 maskCanvas.width = maskCanvas.height = 1600;
 const maskCtx = maskCanvas.getContext('2d');
-
 const BLEND_MODES = [
 { label: 'Normal', value: 'source-over' },
 { label: 'Multiply', value: 'multiply' },
@@ -432,18 +434,21 @@ let brushSize = 30;
 let opacity = 1.0;
 let color = 'rgb(211, 142, 63)';
 let secondaryColor = 'rgb(255, 255, 255)';
-let activeColorTarget = 'primary'; 
+let activeColorTarget = 'primary';
 let mode = 'brush';
 let lastBucketTool = 'bucket';
 let gradientType = 'fg-bg';
 let brushTip = 'round';
 let lastX = 0, lastY = 0;
+// Smoothing logic variables
+let lastPressure = 1.0;
+let strokeHistory = []; // Used for Bezier path smoothing
 let isAltDown = false;
 let isSpaceDown = false;
 let isPanning = false;
 let panMouseX = 0, panMouseY = 0;
 let usePressure = false;
-let usePressureSize = false; 
+let usePressureSize = false;
 let isTransforming = false;
 let hoveredHandle = null;
 let transformState = { x: 0, y: 0, width: 0, height: 0, scale: 1, rotation: 0, originalCanvas: null, activeHandle: null, startMouse: null, initialState: null };
@@ -454,16 +459,16 @@ let curH = 32, curS = 70, curV = 83;
 let smudgeBuffer = null;
 let gradStart = null;
 let toolHoldTimer = null;
-let lassoPoints = []; 
-let activeSelectionPoints = []; 
-let lassoFeather = 0; 
+let lassoPoints = [];
+let activeSelectionPoints = [];
+let lassoFeather = 0;
 let selectionDashOffset = 0;
 let lastMouseData = { x: 0, y: 0, rawX: 0, rawY: 0 };
 const undoStack = [];
 const redoStack = [];
 const INTERNAL_RES = 1600;
+const BASE_DISPLAY_SIZE = 800; // Static size to avoid transform box drift
 let draggedIdx = null;
-
 // Updated Defaults
 const brushSettings = {
 spacing: 0.01,
@@ -473,7 +478,7 @@ scatter: 0.0,
 hueJitter: 0.0,
 satJitter: 0.0,
 briJitter: 0.0,
-jitterMode: 'tip', 
+jitterMode: 'tip',
 strokeHueOffset: 0,
 strokeSatOffset: 0,
 strokeBriOffset: 0,
@@ -481,28 +486,28 @@ lastDabX: 0,
 lastDabY: 0,
 distSinceLastDab: 0
 };
-
 function init() {
 displayCanvas.width = activeStrokeCanvas.width = INTERNAL_RES;
 displayCanvas.height = activeStrokeCanvas.height = INTERNAL_RES;
-
 function resizeOverlay() {
-    cursorCanvas.width = viewport.clientWidth;
-    cursorCanvas.height = viewport.clientHeight;
+cursorCanvas.width = viewport.clientWidth;
+cursorCanvas.height = viewport.clientHeight;
 }
 window.addEventListener('resize', resizeOverlay);
 resizeOverlay();
-
 addLayer('Background', true);
 addLayer('Layer 1');
 stack.addEventListener('pointerdown', start);
 window.addEventListener('pointermove', move);
 window.addEventListener('pointerup', stop);
 window.addEventListener('pointercancel', stop);
-stack.addEventListener('mouseenter', () => { if (!isSpaceDown) cursorCanvas.style.opacity = 1; });
-stack.addEventListener('mouseleave', () => {
-    curCtx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
-    cursorCanvas.style.opacity = 0;
+// Always listen for mouse in viewport to ensure UI handles are visible
+viewport.addEventListener('mouseenter', () => { cursorCanvas.style.opacity = 1; });
+viewport.addEventListener('mouseleave', () => {
+if (!isPainting && !isTransforming && activeSelectionPoints.length === 0) {
+curCtx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
+cursorCanvas.style.opacity = 0;
+}
 });
 window.addEventListener('keydown', handleKeys);
 window.addEventListener('keyup', (e) => {
@@ -514,18 +519,20 @@ stack.style.cursor = isTransforming ? 'crosshair' : 'none';
 cursorCanvas.style.opacity = 1;
 }
 });
-
 window.addEventListener('wheel', (e) => {
-    if (e.ctrlKey) {
-        e.preventDefault();
-        changeZoom(e.deltaY > 0 ? -0.1 : 0.1);
-    }
+if (e.ctrlKey) {
+e.preventDefault();
+changeZoom(e.deltaY > 0 ? -0.1 : 0.1);
+}
 }, { passive: false });
-
-document.getElementById('sizeSlider').oninput = (e) => updateBrushSize(e.target.value);
+document.getElementById('sizeSlider').oninput = (e) => {
+updateBrushSize(e.target.value);
+updateBrushPreview();
+};
 document.getElementById('opacitySlider').oninput = (e) => {
 opacity = e.target.value / 100;
 document.getElementById('opacityVal').innerText = e.target.value + '%';
+updateBrushPreview();
 };
 setupHSVSystem();
 setupBrushEngineUI();
@@ -537,107 +544,132 @@ renderStack();
 finalizeColor();
 window.addEventListener('pointermove', onGlobalReorderMove);
 window.addEventListener('pointerup', onGlobalReorderUp);
-
 function animateMarchingAnts() {
-    selectionDashOffset = (selectionDashOffset + 0.4) % 16;
-    if (activeSelectionPoints.length > 0 || isPainting || mode === 'lasso') {
-        updateCursor(lastMouseData);
-    }
-    requestAnimationFrame(animateMarchingAnts);
+selectionDashOffset = (selectionDashOffset + 0.4) % 16;
+// Redraw overlay if any active tool/state requires it
+const needsRedraw = activeSelectionPoints.length > 0 || 
+isPainting || 
+isTransforming || 
+mode === 'lasso' || 
+isAltDown;
+if (needsRedraw) {
+updateCursor(lastMouseData);
 }
 requestAnimationFrame(animateMarchingAnts);
 }
-
-/******************************************
-* CUSTOM CHROMA FILE FORMAT (.chroma)
-******************************************/
-
+requestAnimationFrame(animateMarchingAnts);
+updateBrushPreview();
+}
+function updateBrushPreview() {
+const pc = document.getElementById('brushPreviewCanvas');
+if (!pc) return;
+const pctx = pc.getContext('2d');
+pctx.clearRect(0, 0, pc.width, pc.height);
+const margin = 25;
+const startX = margin;
+const endX = pc.width - margin;
+const centerY = pc.height / 2;
+const drawColor = (mode === 'eraser') ? 'rgb(255,255,255)' : color;
+let previewDist = 0;
+let lx = startX, ly = centerY;
+const steps = 150;
+for (let i = 0; i <= steps; i++) {
+const ratio = i / steps;
+const x = startX + (endX - startX) * ratio;
+const y = centerY + Math.sin(ratio * Math.PI * 4) * 8;
+const segmentDist = Math.hypot(x - lx, y - ly);
+previewDist += segmentDist;
+const pressureSim = 0.1 + 0.9 * ratio;
+let pSize = brushSize;
+if (pSize > 40) pSize = 40 + (pSize - 40) * 0.2;
+if (usePressureSize) pSize *= pressureSim;
+const spacingPx = Math.max(0.5, pSize * brushSettings.spacing);
+if (previewDist >= spacingPx || i === 0) {
+let pOp = opacity;
+if (usePressure) pOp *= pressureSim;
+let rx = x, ry = y;
+if (brushSettings.scatter > 0) {
+rx += (Math.random() - 0.5) * brushSettings.scatter * pSize;
+ry += (Math.random() - 0.5) * brushSettings.scatter * pSize;
+}
+renderDab(pctx, rx, ry, pSize, drawColor, brushSettings.hardness, pOp * brushSettings.flow);
+previewDist = 0;
+}
+lx = x; ly = y;
+}
+}
 function triggerChromaImport() {
 document.getElementById('chromaInput').click();
 }
-
 async function handleChromaImport(e) {
 const file = e.target.files[0];
 if (!file) return;
-
 const reader = new FileReader();
 reader.onload = async (event) => {
-    try {
-        const project = JSON.parse(event.target.result);
-        if (project.format !== 'chroma') throw new Error("Invalid Chroma file");
-
-        saveUndo();
-        layers = [];
-        
-        for (const lData of project.layers) {
-            const canvas = document.createElement('canvas');
-            canvas.width = canvas.height = INTERNAL_RES;
-            const ctx = canvas.getContext('2d');
-            
-            await new Promise(resolve => {
-                const img = new Image();
-                img.onload = () => {
-                    ctx.drawImage(img, 0, 0);
-                    resolve();
-                };
-                img.src = lData.pixelData;
-            });
-
-            layers.push({
-                id: lData.id || Date.now() + Math.random(),
-                name: lData.name,
-                canvas, ctx,
-                visible: lData.visible,
-                alphaLocked: lData.alphaLocked,
-                clippingMask: lData.clippingMask,
-                blendMode: lData.blendMode,
-                opacity: lData.opacity
-            });
-        }
-
-        activeIdx = 0;
-        refreshUI();
-        renderStack();
-    } catch (err) {
-        console.error("Chroma Load Error:", err);
-        alert("Failed to open Chroma project. File may be corrupted.");
-    }
+try {
+const project = JSON.parse(event.target.result);
+if (project.format !== 'chroma') throw new Error("Invalid Chroma file");
+saveUndo();
+layers = [];
+for (const lData of project.layers) {
+const canvas = document.createElement('canvas');
+canvas.width = canvas.height = INTERNAL_RES;
+const ctx = canvas.getContext('2d');
+await new Promise(resolve => {
+const img = new Image();
+img.onload = () => {
+ctx.drawImage(img, 0, 0);
+resolve();
+};
+img.src = lData.pixelData;
+});
+layers.push({
+id: lData.id || Date.now() + Math.random(),
+name: lData.name,
+canvas, ctx,
+visible: lData.visible,
+alphaLocked: lData.alphaLocked,
+clippingMask: lData.clippingMask,
+blendMode: lData.blendMode,
+opacity: lData.opacity
+});
+}
+activeIdx = 0;
+refreshUI();
+renderStack();
+} catch (err) {
+console.error("Chroma Load Error:", err);
+alert("Failed to open Chroma project. File may be corrupted.");
+}
 };
 reader.readAsText(file);
 e.target.value = '';
 }
-
 function saveChromaFile() {
-    const project = {
-        format: 'chroma',
-        version: '1.0',
-        width: INTERNAL_RES,
-        height: INTERNAL_RES,
-        layers: layers.map(l => ({
-            id: l.id,
-            name: l.name,
-            visible: l.visible,
-            opacity: l.opacity,
-            blendMode: l.blendMode,
-            alphaLocked: l.alphaLocked,
-            clippingMask: l.clippingMask,
-            pixelData: l.canvas.toDataURL('image/png') 
-        }))
-    };
-
-    const blob = new Blob([JSON.stringify(project)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'project.chroma';
-    a.click();
-    URL.revokeObjectURL(url);
+const project = {
+format: 'chroma',
+version: '1.0',
+width: INTERNAL_RES,
+height: INTERNAL_RES,
+layers: layers.map(l => ({
+id: l.id,
+name: l.name,
+visible: l.visible,
+opacity: l.opacity,
+blendMode: l.blendMode,
+alphaLocked: l.alphaLocked,
+clippingMask: l.clippingMask,
+pixelData: l.canvas.toDataURL('image/png')
+}))
+};
+const blob = new Blob([JSON.stringify(project)], { type: 'application/json' });
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url;
+a.download = 'project.chroma';
+a.click();
+URL.revokeObjectURL(url);
 }
-
-/******************************************
-* UI & PAINTING LOGIC
-******************************************/
-
 function setupBrushEngineUI() {
 const bind = (id, key, multiplier = 1, isPercent = true) => {
 const slider = document.getElementById(id);
@@ -646,6 +678,7 @@ slider.oninput = (e) => {
 const val = parseFloat(e.target.value) / multiplier;
 brushSettings[key] = val;
 label.innerText = isPercent ? Math.round(val * 100) + '%' : e.target.value;
+updateBrushPreview();
 };
 };
 bind('bs-spacing', 'spacing', 100);
@@ -657,89 +690,83 @@ bind('bs-satJitter', 'satJitter', 100);
 bind('bs-briJitter', 'briJitter', 100);
 document.getElementById('bs-jitterMode').onchange = (e) => {
 brushSettings.jitterMode = e.target.value;
+updateBrushPreview();
 };
 }
-
 function startToolHold(m) {
-    toolHoldTimer = setTimeout(() => {
-        document.getElementById(m + '-popup').classList.remove('hidden');
-    }, 500);
+toolHoldTimer = setTimeout(() => {
+document.getElementById(m + '-popup').classList.remove('hidden');
+}, 500);
 }
-
 function endToolHold(m) {
-    if (toolHoldTimer) clearTimeout(toolHoldTimer);
-    setTimeout(() => {
-        if (!document.getElementById(m + '-popup').matches(':hover')) {
-            document.getElementById(m + '-popup').classList.add('hidden');
-        }
-    }, 2000);
+if (toolHoldTimer) clearTimeout(toolHoldTimer);
+setTimeout(() => {
+if (!document.getElementById(m + '-popup').matches(':hover')) {
+document.getElementById(m + '-popup').classList.add('hidden');
 }
-
+}, 2000);
+}
 function toggleBrushSettings() {
 const panel = document.getElementById('brushSettingsPanel');
 panel.classList.toggle('hidden');
 document.getElementById('btn-brush-settings').classList.toggle('active', !panel.classList.contains('hidden'));
+if(!panel.classList.contains('hidden')) updateBrushPreview();
 }
-
 function toggleTheme() {
 const isLight = document.body.classList.toggle('light-mode');
 const toggleBtn = document.getElementById('themeToggle').querySelector('i');
 if (isLight) toggleBtn.className = 'fas fa-sun';
 else toggleBtn.className = 'fas fa-moon';
 }
-
 function togglePressure() {
 usePressure = !usePressure;
 const btn = document.getElementById('btn-pressure');
 btn.classList.toggle('text-[#D38E3F]', usePressure);
 btn.classList.toggle('text-gray-500', !usePressure);
+updateBrushPreview();
 }
-
 function togglePressureSize() {
-    usePressureSize = !usePressureSize;
-    const btn = document.getElementById('btn-pressure-size');
-    btn.classList.toggle('text-[#D38E3F]', usePressureSize);
-    btn.classList.toggle('text-gray-500', !usePressureSize);
+usePressureSize = !usePressureSize;
+const btn = document.getElementById('btn-pressure-size');
+btn.classList.toggle('text-[#D38E3F]', usePressureSize);
+btn.classList.toggle('text-gray-500', !usePressureSize);
+updateBrushPreview();
 }
-
 function setActiveColorTarget(target) {
-    activeColorTarget = target;
-    colorPreview.classList.toggle('color-preview-active', target === 'primary');
-    secondaryColorPreview.classList.toggle('color-preview-active', target === 'secondary');
-    const rgbStr = target === 'primary' ? color : secondaryColor;
-    const [h, s, v] = rgbToHsvRaw(...rgbStr.match(/\d+/g).map(Number));
-    curH = h; curS = s; curV = v;
-    finalizeColor();
+activeColorTarget = target;
+colorPreview.classList.toggle('color-preview-active', target === 'primary');
+secondaryColorPreview.classList.toggle('color-preview-active', target === 'secondary');
+const rgbStr = target === 'primary' ? color : secondaryColor;
+const [h, s, v] = rgbToHsvRaw(...rgbStr.match(/\d+/g).map(Number));
+curH = h; curS = s; curV = v;
+finalizeColor();
 }
-
 function swapColors() {
-    const temp = color;
-    color = secondaryColor;
-    secondaryColor = temp;
-    const rgbStr = activeColorTarget === 'primary' ? color : secondaryColor;
-    const [h, s, v] = rgbToHsvRaw(...rgbStr.match(/\d+/g).map(Number));
-    curH = h; curS = s; curV = v;
-    finalizeColor();
+const temp = color;
+color = secondaryColor;
+secondaryColor = temp;
+const rgbStr = activeColorTarget === 'primary' ? color : secondaryColor;
+const [h, s, v] = rgbToHsvRaw(...rgbStr.match(/\d+/g).map(Number));
+curH = h; curS = s; curV = v;
+finalizeColor();
 }
-
 function rgbToHsvRaw(r, g, b) {
-    r /= 255; g /= 255; b /= 255;
-    const max = Math.max(r, g, b), min = Math.min(r, g, b);
-    let h, s, v = max;
-    const d = max - min;
-    s = max === 0 ? 0 : d / max;
-    if (max === min) h = 0;
-    else {
-        switch (max) {
-            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-            case g: h = (b - r) / d + 2; break;
-            case b: h = (r - g) / d + 4; break;
-        }
-        h /= 6;
-    }
-    return [h * 360, s * 100, v * 100];
+r /= 255; g /= 255; b /= 255;
+const max = Math.max(r, g, b), min = Math.min(r, g, b);
+let h, s, v = max;
+const d = max - min;
+s = max === 0 ? 0 : d / max;
+if (max === min) h = 0;
+else {
+switch (max) {
+case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+case g: h = (b - r) / d + 2; break;
+case b: h = (r - g) / d + 4; break;
 }
-
+h /= 6;
+}
+return [h * 360, s * 100, v * 100];
+}
 function sampleColorAt(pos) {
 const data = displayCtx.getImageData(pos.x, pos.y, 1, 1).data;
 if (data[3] === 0) return;
@@ -747,7 +774,6 @@ const [h, s, v] = rgbToHsvRaw(data[0], data[1], data[2]);
 curH = h; curS = s; curV = v;
 finalizeColor();
 }
-
 function changeZoom(delta) { zoom = Math.max(0.1, Math.min(10.0, zoom + delta)); updateViewport(); }
 function changeRotate(delta) { rotation += delta; updateViewport(); }
 function toggleFlip() { flipH = !flipH; updateViewport(); }
@@ -756,13 +782,12 @@ stack.style.transform = `scale(${zoom}) rotate(${rotation}deg) scaleX(${flipH ? 
 document.getElementById('zoomVal').innerText = Math.round(zoom * 100) + '%';
 document.getElementById('rotateVal').innerText = (rotation % 360) + '°';
 }
-
 function updateBrushSize(val) {
 brushSize = Math.max(1, Math.min(300, parseInt(val)));
 document.getElementById('sizeSlider').value = brushSize;
 document.getElementById('sizeVal').innerText = brushSize + 'px';
+updateBrushPreview();
 }
-
 function handleKeys(e) {
 if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
 if (e.key === 'Alt') { e.preventDefault(); isAltDown = true; return; }
@@ -776,20 +801,17 @@ cursorCanvas.style.opacity = 0;
 e.preventDefault();
 return;
 }
-
 const keyLow = e.key.toLowerCase();
-
 if (e.ctrlKey) {
-    if (e.key === '=' || e.key === '+' || e.key === '-' || e.key === '0' || keyLow === 's') {
-        e.preventDefault();
-        if (e.key === '=' || e.key === '+') changeZoom(0.1);
-        if (e.key === '-') changeZoom(-0.1);
-        if (e.key === '0') { zoom = 1.0; rotation = 0; flipH = false; updateViewport(); }
-        if (keyLow === 's') saveChromaFile();
-        return;
-    }
+if (e.key === '=' || e.key === '+' || e.key === '-' || e.key === '0' || keyLow === 's') {
+e.preventDefault();
+if (e.key === '=' || e.key === '+') changeZoom(0.1);
+if (e.key === '-') changeZoom(-0.1);
+if (e.key === '0') { zoom = 1.0; rotation = 0; flipH = false; updateViewport(); }
+if (keyLow === 's') saveChromaFile();
+return;
 }
-
+}
 if (e.ctrlKey && e.shiftKey && keyLow === 'z') { e.preventDefault(); redo(); return; }
 if (e.ctrlKey && keyLow === 'z') { e.preventDefault(); undo(); return; }
 if (e.ctrlKey && keyLow === 'n') { e.preventDefault(); addLayer(); }
@@ -804,29 +826,26 @@ if (keyLow === 'e') setMode('eraser');
 if (keyLow === 's') setMode('smudge');
 if (keyLow === 'l') setMode('lasso');
 if (keyLow === 'g') {
-    if (mode === 'bucket') setMode('gradient');
-    else if (mode === 'gradient') setMode('bucket');
-    else setMode(lastBucketTool);
+if (mode === 'bucket') setMode('gradient');
+else if (mode === 'gradient') setMode('bucket');
+else setMode(lastBucketTool);
 }
 if (keyLow === 'x') { e.preventDefault(); swapColors(); }
 if (e.key === '[') updateBrushSize(brushSize - (brushSize > 20 ? 5 : 2));
 if (e.key === ']') updateBrushSize(brushSize + (brushSize > 20 ? 5 : 2));
 }
-
 function clearSelection() {
-    activeSelectionPoints = [];
-    lassoPoints = [];
-    maskCtx.clearRect(0, 0, 1600, 1600);
-    document.getElementById('selectionGlobalUI').classList.replace('flex', 'hidden');
-    updateCursor(lastMouseData);
+activeSelectionPoints = [];
+lassoPoints = [];
+maskCtx.clearRect(0, 0, 1600, 1600);
+document.getElementById('selectionGlobalUI').classList.replace('flex', 'hidden');
+updateCursor(lastMouseData);
 }
-
 function updateLassoFeather(val) {
-    lassoFeather = parseInt(val);
-    document.getElementById('lassoFeatherVal').innerText = val + 'px';
-    if (activeSelectionPoints.length > 0) generateMask();
+lassoFeather = parseInt(val);
+document.getElementById('lassoFeatherVal').innerText = val + 'px';
+if (activeSelectionPoints.length > 0) generateMask();
 }
-
 function setupDraggable(el) {
 const header = el.querySelector('.panel-header');
 let nx = 0, ny = 0;
@@ -846,7 +865,6 @@ header.addEventListener('pointermove', onPointerMove);
 header.addEventListener('pointerup', () => { header.removeEventListener('pointermove', onPointerMove); }, { once: true });
 });
 }
-
 function toggleTransform() {
 if (!isTransforming) {
 const layer = layers[activeIdx]; if (!layer) return;
@@ -860,12 +878,10 @@ transformState.x = transformState.y = INTERNAL_RES / 2; transformState.scale = 1
 document.getElementById('btn-transform').classList.add('text-[#D38E3F]'); refreshUI(); renderStack();
 } else { applyTransform(); }
 }
-
 function cancelTransform() {
 isTransforming = false; stack.style.cursor = 'none';
 document.getElementById('btn-transform').classList.remove('text-[#D38E3F]'); renderStack();
 }
-
 function applyTransform() {
 const layer = layers[activeIdx]; const ctx = layer.ctx;
 ctx.clearRect(0, 0, INTERNAL_RES, INTERNAL_RES);
@@ -876,7 +892,6 @@ ctx.restore();
 isTransforming = false; stack.style.cursor = 'none';
 document.getElementById('btn-transform').classList.remove('text-[#D38E3F]'); renderStack();
 }
-
 function addLayer(name, isWhite = false) {
 saveUndo();
 const canvas = document.createElement('canvas'); canvas.width = canvas.height = INTERNAL_RES;
@@ -885,7 +900,6 @@ if (isWhite) { ctx.fillStyle = 'white'; ctx.fillRect(0, 0, INTERNAL_RES, INTERNA
 const layer = { id: Date.now() + Math.random(), name: name || `Layer ${layers.length + 1}`, canvas, ctx, visible: true, alphaLocked: false, clippingMask: false, blendMode: 'source-over', opacity: 1.0 };
 layers.unshift(layer); activeIdx = 0; refreshUI(); renderStack();
 }
-
 function duplicateLayer() {
 const source = layers[activeIdx]; if (!source) return;
 saveUndo();
@@ -894,7 +908,6 @@ const ctx = canvas.getContext('2d'); ctx.drawImage(source.canvas, 0, 0);
 const copy = { ...source, id: Date.now() + Math.random(), canvas, ctx, name: source.name + " copy" };
 layers.splice(activeIdx, 0, copy); refreshUI(); renderStack();
 }
-
 function mergeDown() {
 if (activeIdx >= layers.length - 1) return;
 saveUndo();
@@ -911,16 +924,13 @@ bottom.ctx.save(); bottom.ctx.globalAlpha = top.opacity; bottom.ctx.globalCompos
 bottom.ctx.drawImage(temp, 0, 0); bottom.ctx.restore();
 layers.splice(activeIdx, 1); activeIdx = Math.min(activeIdx, layers.length - 1); refreshUI(); renderStack();
 }
-
 function deleteLayer(i, e) {
 e.stopPropagation(); if (layers.length <= 1) return;
 saveUndo(); layers.splice(i, 1);
 if (activeIdx > i) activeIdx--;
 activeIdx = Math.max(0, Math.min(activeIdx, layers.length - 1)); refreshUI(); renderStack();
 }
-
 function triggerImageImport() { document.getElementById('imageInput').click(); }
-
 function handleImageImport(e) {
 const file = e.target.files[0]; if (!file) return;
 const reader = new FileReader();
@@ -939,7 +949,6 @@ img.src = event.target.result;
 };
 reader.readAsDataURL(file);
 }
-
 function startRename(i, e) {
 e.stopPropagation();
 const span = e.target;
@@ -950,7 +959,6 @@ input.onblur = finish;
 input.onkeydown = (ke) => { if (ke.key === 'Enter') finish(); if (ke.key === 'Escape') refreshUI(); };
 span.replaceWith(input); input.focus(); input.select();
 }
-
 function onGlobalReorderMove(e) {
 if (draggedIdx === null) return;
 const targetEl = document.elementFromPoint(e.clientX, e.clientY);
@@ -963,17 +971,14 @@ draggedIdx = newIdx; activeIdx = newIdx; refreshUI();
 }
 }
 }
-
 function onGlobalReorderUp() {
 if (draggedIdx !== null) { saveUndo(); draggedIdx = null; refreshUI(); renderStack(); }
 }
-
 function toggleAlphaLock(i, e) { e?.stopPropagation(); saveUndo(); layers[i].alphaLocked = !layers[i].alphaLocked; refreshUI(); }
 function toggleClipping(i, e) { e?.stopPropagation(); if (i === layers.length - 1) return; saveUndo(); layers[i].clippingMask = !layers[i].clippingMask; refreshUI(); renderStack(); }
 function setBlendMode(i, mode) { saveUndo(); layers[i].blendMode = mode; renderStack(); }
 function updateLayerOpacity(i, val) { layers[i].opacity = val / 100; renderStack(); }
 function toggleVis(i, e) { e.stopPropagation(); saveUndo(); layers[i].visible = !layers[i].visible; refreshUI(); renderStack(); }
-
 function refreshUI() {
 const currentScroll = list.scrollTop;
 list.innerHTML = '';
@@ -1011,12 +1016,10 @@ list.appendChild(el);
 });
 list.scrollTop = currentScroll;
 }
-
 function findClippingBase(i) {
 for (let j = i + 1; j < layers.length; j++) { if (!layers[j].clippingMask) return layers[j]; }
 return null;
 }
-
 function renderStack() {
 displayCtx.clearRect(0, 0, INTERNAL_RES, INTERNAL_RES);
 for (let i = layers.length - 1; i >= 0; i--) {
@@ -1033,49 +1036,48 @@ if (baseLayer) {
 const tempCanvas = document.createElement('canvas'); tempCanvas.width = tempCanvas.height = INTERNAL_RES;
 const tctx = tempCanvas.getContext('2d'); tctx.drawImage(layer.canvas, 0, 0);
 if (isDrawingCurrent) {
-    const previewBuffer = document.createElement('canvas'); 
-    previewBuffer.width = previewBuffer.height = INTERNAL_RES;
-    const pctx = previewBuffer.getContext('2d');
-    pctx.drawImage(activeStrokeCanvas, 0, 0);
-    applySelectionMask(pctx); // Restricted to lasso area for preview
-    
-    if (mode === 'eraser') tctx.globalCompositeOperation = 'destination-out';
-    else if (layer.alphaLocked) tctx.globalCompositeOperation = 'source-atop';
-    else tctx.globalCompositeOperation = 'source-over';
-    tctx.drawImage(previewBuffer, 0, 0);
+const previewBuffer = document.createElement('canvas');
+previewBuffer.width = previewBuffer.height = INTERNAL_RES;
+const pctx = previewBuffer.getContext('2d');
+pctx.drawImage(activeStrokeCanvas, 0, 0);
+applySelectionMask(pctx); // Restricted to lasso area for preview
+if (mode === 'eraser') tctx.globalCompositeOperation = 'destination-out';
+else if (layer.alphaLocked) tctx.globalCompositeOperation = 'source-atop';
+else tctx.globalCompositeOperation = 'source-over';
+tctx.drawImage(previewBuffer, 0, 0);
 }
 tctx.globalCompositeOperation = 'destination-in'; tctx.drawImage(baseLayer.canvas, 0, 0);
 displayCtx.globalCompositeOperation = layer.blendMode; displayCtx.drawImage(tempCanvas, 0, 0);
 } else { displayCtx.globalCompositeOperation = layer.blendMode; displayCtx.drawImage(layer.canvas, 0, 0); }
 } else {
 if (isDrawingCurrent) {
-    const buffer = document.createElement('canvas'); buffer.width = buffer.height = INTERNAL_RES;
-    const bctx = buffer.getContext('2d'); 
-    bctx.drawImage(layer.canvas, 0, 0);
-
-    const previewBuffer = document.createElement('canvas');
-    previewBuffer.width = previewBuffer.height = INTERNAL_RES;
-    const pctx = previewBuffer.getContext('2d');
-    pctx.drawImage(activeStrokeCanvas, 0, 0);
-    applySelectionMask(pctx); // Restricted to lasso area for preview
-
-    if (mode === 'eraser') bctx.globalCompositeOperation = 'destination-out';
-    else if (layer.alphaLocked) bctx.globalCompositeOperation = 'source-atop';
-    else bctx.globalCompositeOperation = 'source-over';
-    bctx.drawImage(previewBuffer, 0, 0);
-
-    displayCtx.globalCompositeOperation = layer.blendMode; 
-    displayCtx.drawImage(buffer, 0, 0);
+const buffer = document.createElement('canvas'); buffer.width = buffer.height = INTERNAL_RES;
+const bctx = buffer.getContext('2d');
+bctx.drawImage(layer.canvas, 0, 0);
+const previewBuffer = document.createElement('canvas');
+previewBuffer.width = previewBuffer.height = INTERNAL_RES;
+const pctx = previewBuffer.getContext('2d');
+pctx.drawImage(activeStrokeCanvas, 0, 0);
+applySelectionMask(pctx); // Restricted to lasso area for preview
+if (mode === 'eraser') bctx.globalCompositeOperation = 'destination-out';
+else if (layer.alphaLocked) bctx.globalCompositeOperation = 'source-atop';
+else bctx.globalCompositeOperation = 'source-over';
+bctx.drawImage(previewBuffer, 0, 0);
+displayCtx.globalCompositeOperation = layer.blendMode;
+displayCtx.drawImage(buffer, 0, 0);
 } else { displayCtx.globalCompositeOperation = layer.blendMode; displayCtx.drawImage(layer.canvas, 0, 0); }
 }
 displayCtx.restore();
 }
 }
-
 function start(e) {
 if (e.pointerType === 'pen' || e.pointerType === 'mouse') { stack.setPointerCapture(e.pointerId); }
 if (isSpaceDown) { isPanning = true; panMouseX = e.clientX; panMouseY = e.clientY; stack.style.cursor = 'grabbing'; return; }
-const pos = getPos(e); lastX = pos.x; lastY = pos.y;
+const pos = getPos(e);
+lastX = pos.x; lastY = pos.y;
+lastInputX = pos.x; lastInputY = pos.y;
+strokeHistory = [{x: pos.x, y: pos.y, p: (e.pressure !== undefined && e.pressure > 0) ? e.pressure : 1.0}];
+lastPressure = (e.pressure !== undefined && e.pressure > 0) ? e.pressure : 1.0;
 brushSettings.lastDabX = pos.x; brushSettings.lastDabY = pos.y; brushSettings.distSinceLastDab = 0;
 if (brushSettings.jitterMode === 'stroke') {
 brushSettings.strokeHueOffset = (Math.random() - 0.5) * brushSettings.hueJitter * 360;
@@ -1090,10 +1092,10 @@ return;
 }
 if (mode === 'bucket') { saveUndo(); floodFill(pos.x, pos.y); }
 else if (mode === 'gradient') { isPainting = true; gradStart = pos; }
-else if (mode === 'lasso') { 
-    isPainting = true; 
-    lassoPoints = [pos]; 
-    activeSelectionPoints = []; 
+else if (mode === 'lasso') {
+isPainting = true;
+lassoPoints = [pos];
+activeSelectionPoints = [];
 }
 else {
 isPainting = true; saveUndo(); activeStrokeCtx.clearRect(0,0,INTERNAL_RES, INTERNAL_RES);
@@ -1110,262 +1112,318 @@ sctx.restore();
 draw(e); renderStack();
 }
 }
-
 function move(e) {
 if (isPanning) {
 viewport.scrollLeft -= (e.clientX - panMouseX); viewport.scrollTop -= (e.clientY - panMouseY);
 panMouseX = e.clientX; panMouseY = e.clientY; return;
 }
 const pos = getPos(e);
-lastMouseData = pos; 
+lastMouseData = pos;
 if (isAltDown && isPainting) sampleColorAt(pos);
 if (isTransforming) {
 if (transformState.activeHandle) { updateTransform(pos); renderStack(); } else hoveredHandle = getTransformHandle(pos.x, pos.y);
-} else if (isPainting) { 
-    if (mode === 'gradient') { updateCursor(pos); } 
-    else if (mode === 'lasso') { lassoPoints.push(pos); updateCursor(pos); } 
-    else { draw(e); renderStack(); }
+} else if (isPainting) {
+if (mode === 'gradient') { updateCursor(pos); }
+else if (mode === 'lasso') { lassoPoints.push(pos); updateCursor(pos); }
+else { draw(e); renderStack(); }
 } else {
-    updateCursor(pos);
+updateCursor(pos);
 }
-lastX = pos.x; lastY = pos.y;
+lastInputX = pos.x; lastInputY = pos.y;
 }
-
 function stop(e) {
 if (isPanning) { isPanning = false; stack.style.cursor = isSpaceDown ? 'grab' : (isTransforming ? 'crosshair' : 'none'); return; }
 if (isTransforming) transformState.activeHandle = null;
-if (isPainting) { 
-    if (mode === 'gradient') {
-        const pos = getPos(e); applyGradient(gradStart, pos); gradStart = null;
-    } else if (mode === 'lasso') {
-        if (lassoPoints.length > 3) { activeSelectionPoints = [...lassoPoints]; generateMask(); }
-        lassoPoints = [];
-    } else {
-        commitActiveStroke(); 
-    }
-    isPainting = false; smudgeBuffer = null; renderStack(); 
+if (isPainting) {
+if (mode === 'gradient') {
+const pos = getPos(e); applyGradient(gradStart, pos); gradStart = null;
+} else if (mode === 'lasso') {
+if (lassoPoints.length > 3) { activeSelectionPoints = [...lassoPoints]; generateMask(); }
+lassoPoints = [];
+} else {
+commitActiveStroke();
 }
+isPainting = false; smudgeBuffer = null; renderStack();
 }
-
+strokeHistory = [];
+}
 function generateMask() {
-    maskCtx.clearRect(0, 0, 1600, 1600);
-    if (activeSelectionPoints.length < 3) return;
-    maskCtx.save();
-    if (lassoFeather > 0) { maskCtx.filter = `blur(${lassoFeather}px)`; }
-    maskCtx.fillStyle = 'white';
-    maskCtx.beginPath();
-    maskCtx.moveTo(activeSelectionPoints[0].x, activeSelectionPoints[0].y);
-    for (let i = 1; i < activeSelectionPoints.length; i++) {
-        maskCtx.lineTo(activeSelectionPoints[i].x, activeSelectionPoints[i].y);
-    }
-    maskCtx.closePath();
-    maskCtx.fill();
-    maskCtx.restore();
-    document.getElementById('selectionGlobalUI').classList.replace('hidden', 'flex');
+maskCtx.clearRect(0, 0, 1600, 1600);
+if (activeSelectionPoints.length < 3) return;
+maskCtx.save();
+if (lassoFeather > 0) { maskCtx.filter = `blur(${lassoFeather}px)`; }
+maskCtx.fillStyle = 'white';
+maskCtx.beginPath();
+maskCtx.moveTo(activeSelectionPoints[0].x, activeSelectionPoints[0].y);
+for (let i = 1; i < activeSelectionPoints.length; i++) {
+maskCtx.lineTo(activeSelectionPoints[i].x, activeSelectionPoints[i].y);
 }
-
+maskCtx.closePath();
+maskCtx.fill();
+maskCtx.restore();
+document.getElementById('selectionGlobalUI').classList.replace('hidden', 'flex');
+}
 function applySelectionMask(targetCtx) {
-    if (activeSelectionPoints.length < 3) return;
-    targetCtx.save();
-    targetCtx.globalCompositeOperation = 'destination-in';
-    targetCtx.drawImage(maskCanvas, 0, 0);
-    targetCtx.restore();
+if (activeSelectionPoints.length < 3) return;
+targetCtx.save();
+targetCtx.globalCompositeOperation = 'destination-in';
+targetCtx.drawImage(maskCanvas, 0, 0);
+targetCtx.restore();
 }
-
 function applyGradient(start, end) {
-    saveUndo();
-    const l = layers[activeIdx];
-    
-    const buffer = document.createElement('canvas'); 
-    buffer.width = buffer.height = INTERNAL_RES;
-    const bctx = buffer.getContext('2d');
-
-    const grad = bctx.createLinearGradient(start.x, start.y, end.x, end.y);
-    let c1, c2;
-    switch(gradientType) {
-        case 'fg-bg': c1 = color; c2 = secondaryColor; break;
-        case 'bg-fg': c1 = secondaryColor; c2 = color; break;
-        case 'fg-trans': c1 = color; c2 = color.replace('rgb', 'rgba').replace(')', ', 0)'); break;
-        case 'bg-trans': c1 = secondaryColor; c2 = secondaryColor.replace('rgb', 'rgba').replace(')', ', 0)'); break;
-    }
-    grad.addColorStop(0, c1);
-    grad.addColorStop(1, c2);
-    
-    bctx.fillStyle = grad;
-    bctx.fillRect(0, 0, INTERNAL_RES, INTERNAL_RES);
-    applySelectionMask(bctx); // Restricted to selection
-
-    l.ctx.save();
-    l.ctx.globalAlpha = opacity;
-    if (l.alphaLocked) l.ctx.globalCompositeOperation = 'source-atop';
-    l.ctx.drawImage(buffer, 0, 0);
-    l.ctx.restore();
+saveUndo();
+const l = layers[activeIdx];
+const buffer = document.createElement('canvas');
+buffer.width = buffer.height = INTERNAL_RES;
+const bctx = buffer.getContext('2d');
+const grad = bctx.createLinearGradient(start.x, start.y, end.x, end.y);
+let c1, c2;
+switch(gradientType) {
+case 'fg-bg': c1 = color; c2 = secondaryColor; break;
+case 'bg-fg': c1 = secondaryColor; c2 = color; break;
+case 'fg-trans': c1 = color; c2 = color.replace('rgb', 'rgba').replace(')', ', 0)'); break;
+case 'bg-trans': c1 = secondaryColor; c2 = secondaryColor.replace('rgb', 'rgba').replace(')', ', 0)'); break;
 }
-
+grad.addColorStop(0, c1);
+grad.addColorStop(1, c2);
+bctx.fillStyle = grad;
+bctx.fillRect(0, 0, INTERNAL_RES, INTERNAL_RES);
+applySelectionMask(bctx);
+l.ctx.save();
+l.ctx.globalAlpha = opacity;
+if (l.alphaLocked) l.ctx.globalCompositeOperation = 'source-atop';
+l.ctx.drawImage(buffer, 0, 0);
+l.ctx.restore();
+}
 function commitActiveStroke() {
 const layer = layers[activeIdx]; if (!layer) return;
 const buffer = document.createElement('canvas'); buffer.width = buffer.height = INTERNAL_RES;
 const bctx = buffer.getContext('2d');
 bctx.drawImage(activeStrokeCanvas, 0, 0);
 applySelectionMask(bctx);
-
 layer.ctx.save();
 if (mode === 'eraser') layer.ctx.globalCompositeOperation = 'destination-out';
 else if (layer.alphaLocked) layer.ctx.globalCompositeOperation = 'source-atop';
 else layer.ctx.globalCompositeOperation = 'source-over';
-layer.ctx.drawImage(buffer, 0, 0); 
+layer.ctx.drawImage(buffer, 0, 0);
 layer.ctx.restore();
 activeStrokeCtx.clearRect(0,0,INTERNAL_RES, INTERNAL_RES);
 }
-
 function getTransformHandle(x, y) {
-const s = transformState; const vs = INTERNAL_RES / stack.getBoundingClientRect().width; const threshold = 25 * vs;
-const hw = (s.width / 2) * s.scale; const hh = (s.height / 2) * s.scale;
-const rot = { x: s.x + 0 * Math.cos(s.rotation) - (-hh - 50 * vs) * Math.sin(s.rotation), y: s.y + 0 * Math.sin(s.rotation) + (-hh - 50 * vs) * Math.cos(s.rotation) };
-if (Math.hypot(x - rot.x, y - rot.y) < threshold) return 'rotate';
-const corners = [ { id: 'tl', x: s.x - hw, y: s.y - hh }, { id: 'tr', x: s.x + hw, y: s.y - hh }, { id: 'bl', x: s.x - hw, y: s.y + hh }, { id: 'br', x: s.x + hw, y: s.y + hh } ];
+const s = transformState; 
+const sc = INTERNAL_RES / (BASE_DISPLAY_SIZE * zoom); // Dynamic canvas scale factor
+const threshold = 30 * sc; // Grabbable threshold in canvas units
+const hw = (s.width / 2) * s.scale; 
+const hh = (s.height / 2) * s.scale;
+// Rotation handle logic (consistent arm length in screen space)
+const rotDist = 60 * sc;
+const rx_local = 0;
+const ry_local = -hh - rotDist;
+const rotX = s.x + rx_local * Math.cos(s.rotation) - ry_local * Math.sin(s.rotation);
+const rotY = s.y + rx_local * Math.sin(s.rotation) + ry_local * Math.cos(s.rotation);
+if (Math.hypot(x - rotX, y - rotY) < threshold) return 'rotate';
+const corners = [ 
+{ id: 'tl', x: -hw, y: -hh }, 
+{ id: 'tr', x: hw, y: -hh }, 
+{ id: 'bl', x: -hw, y: hh }, 
+{ id: 'br', x: hw, y: hh } 
+];
 for (const c of corners) {
-const rad = s.rotation; const dx = c.x - s.x; const dy = c.y - s.y;
-const px = s.x + dx * Math.cos(rad) - dy * Math.sin(rad); const py = s.y + dx * Math.sin(rad) + dy * Math.cos(rad);
+const px = s.x + c.x * Math.cos(s.rotation) - c.y * Math.sin(s.rotation);
+const py = s.y + c.x * Math.sin(s.rotation) + c.y * Math.cos(s.rotation);
 if (Math.hypot(x - px, y - py) < threshold) return c.id;
 }
-const rad = -s.rotation; const dx = (x - s.x) * Math.cos(rad) - (y - s.y) * Math.sin(rad); const dy = (x - s.x) * Math.sin(rad) + (y - s.y) * Math.cos(rad);
+const rad = -s.rotation;
+const dx = (x - s.x) * Math.cos(rad) - (y - s.y) * Math.sin(rad);
+const dy = (x - s.x) * Math.sin(rad) + (y - s.y) * Math.cos(rad);
 if (Math.abs(dx) < hw && Math.abs(dy) < hh) return 'move';
 return null;
 }
-
 function updateTransform(pos) {
 const s = transformState; const init = s.initialState; const dx = pos.x - s.startMouse.x; const dy = pos.y - s.startMouse.y;
 if (s.activeHandle === 'move') { s.x = init.x + dx; s.y = init.y + dy; }
 else if (s.activeHandle === 'rotate') { s.rotation = init.rotation + (Math.atan2(pos.y - s.y, pos.x - s.x) - Math.atan2(s.startMouse.y - s.y, s.startMouse.x - s.x)); }
 else if (['tl', 'tr', 'bl', 'br'].includes(s.activeHandle)) { s.scale = Math.max(0.01, init.scale * (Math.hypot(pos.x - s.x, pos.y - s.y) / Math.hypot(s.startMouse.x - s.x, s.startMouse.y - s.y))); }
 }
-
 function updateCursor(pos) {
 if (!pos) return;
 curCtx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
+// Check if hovering over UI panels to hide brush cursor
+const targetEl = document.elementFromPoint(pos.rawX, pos.rawY);
+if (targetEl && (targetEl.closest('.ui-panel') || targetEl.closest('.draggable-panel'))) {
+return;
+}
 const vRect = viewport.getBoundingClientRect();
 const sRect = stack.getBoundingClientRect();
-
+// Accurate Screen-space projection
 function project(ix, iy) {
-    const centerX = sRect.left + sRect.width / 2 - vRect.left;
-    const centerY = sRect.top + sRect.height / 2 - vRect.top;
-    let dx = ix - INTERNAL_RES / 2;
-    let dy = iy - INTERNAL_RES / 2;
-    if (flipH) dx = -dx;
-    const sFactor = (800 * zoom) / INTERNAL_RES; 
-    const rad = (rotation * Math.PI) / 180;
-    const rx = (dx * Math.cos(rad) - dy * Math.sin(rad)) * sFactor;
-    const ry = (dx * Math.sin(rad) + dy * Math.cos(rad)) * sFactor;
-    return { x: centerX + rx, y: centerY + ry };
+const centerX = sRect.left + sRect.width / 2 - vRect.left;
+const centerY = sRect.top + sRect.height / 2 - vRect.top;
+let dx = ix - INTERNAL_RES / 2;
+let dy = iy - INTERNAL_RES / 2;
+if (flipH) dx = -dx;
+const sFactor = (BASE_DISPLAY_SIZE * zoom) / INTERNAL_RES;
+const rad = (rotation * Math.PI) / 180;
+const rx = (dx * Math.cos(rad) - dy * Math.sin(rad)) * sFactor;
+const ry = (dx * Math.sin(rad) + dy * Math.cos(rad)) * sFactor;
+return { x: centerX + rx, y: centerY + ry };
 }
-
 const mx = pos.rawX - vRect.left;
 const my = pos.rawY - vRect.top;
 curCtx.save();
-
 let outlineColor = 'white';
 try {
-    const px = Math.floor(pos.x);
-    const py = Math.floor(pos.y);
-    if (px >= 0 && px < INTERNAL_RES && py >= 0 && py < INTERNAL_RES) {
-        const pixel = displayCtx.getImageData(px, py, 1, 1).data;
-        const lightness = pixel[3] === 0 ? 100 : (Math.max(pixel[0], pixel[1], pixel[2]) / 255 * 100);
-        outlineColor = lightness > 50 ? 'black' : 'white';
-    }
+const px = Math.floor(pos.x);
+const py = Math.floor(pos.y);
+if (px >= 0 && px < INTERNAL_RES && py >= 0 && py < INTERNAL_RES) {
+const pixel = displayCtx.getImageData(px, py, 1, 1).data;
+const lightness = pixel[3] === 0 ? 100 : (Math.max(pixel[0], pixel[1], pixel[2]) / 255 * 100);
+outlineColor = lightness > 50 ? 'black' : 'white';
+}
 } catch(e) { outlineColor = 'white'; }
-
 function drawSelectionLine(pts, isClosed, offset) {
-    if (pts.length < 2) return;
-    curCtx.save();
-    curCtx.setLineDash([5, 5]);
-    curCtx.lineDashOffset = -offset;
-    curCtx.beginPath();
-    const p0 = project(pts[0].x, pts[0].y);
-    curCtx.moveTo(p0.x, p0.y);
-    for (let i = 1; i < pts.length; i++) {
-        const pi = project(pts[i].x, pts[i].y);
-        curCtx.lineTo(pi.x, pi.y);
-    }
-    if (isClosed) curCtx.closePath();
-    curCtx.stroke();
-    curCtx.restore();
+if (pts.length < 2) return;
+curCtx.save();
+curCtx.setLineDash([5, 5]);
+curCtx.lineDashOffset = -offset;
+curCtx.beginPath();
+const p0 = project(pts[0].x, pts[0].y);
+curCtx.moveTo(p0.x, p0.y);
+for (let i = 1; i < pts.length; i++) {
+const pi = project(pts[i].x, pts[i].y);
+curCtx.lineTo(pi.x, pi.y);
 }
-
+if (isClosed) curCtx.closePath();
+curCtx.stroke();
+curCtx.restore();
+}
+// 1. Eyedropper visual feedback
+if (isAltDown) {
+curCtx.save();
+curCtx.translate(mx, my);
+curCtx.rotate(-Math.PI / 4);
+curCtx.strokeStyle = outlineColor;
+curCtx.fillStyle = color;
+curCtx.lineWidth = 2;
+// Draw Eyedropper Shape
+curCtx.beginPath();
+curCtx.roundRect(-3, -16, 6, 20, 2); // body
+curCtx.moveTo(-3, 4); curCtx.lineTo(0, 10); curCtx.lineTo(3, 4); // tip
+curCtx.stroke();
+curCtx.fill();
+curCtx.beginPath();
+curCtx.arc(0, -18, 5, 0, Math.PI * 2); // bulb
+curCtx.stroke();
+curCtx.restore();
+return;
+}
 if (activeSelectionPoints.length > 2) {
-    curCtx.strokeStyle = outlineColor;
-    drawSelectionLine(activeSelectionPoints, true, selectionDashOffset);
+curCtx.strokeStyle = outlineColor;
+drawSelectionLine(activeSelectionPoints, true, selectionDashOffset);
 }
-
 if (mode === 'lasso' && isPainting && lassoPoints.length > 0) {
-    curCtx.strokeStyle = outlineColor;
-    drawSelectionLine(lassoPoints, false, selectionDashOffset);
+curCtx.strokeStyle = outlineColor;
+drawSelectionLine(lassoPoints, false, selectionDashOffset);
 } else if (mode === 'bucket' || mode === 'gradient') {
-    curCtx.strokeStyle = outlineColor; curCtx.lineWidth = 2; const s = 10;
-    curCtx.beginPath(); curCtx.moveTo(mx - s, my - s); curCtx.lineTo(mx + s, my + s);
-    curCtx.moveTo(mx + s, my - s); curCtx.lineTo(mx - s, my + s); curCtx.stroke();
+curCtx.strokeStyle = outlineColor; curCtx.lineWidth = 2; const s = 10;
+curCtx.beginPath(); curCtx.moveTo(mx - s, my - s); curCtx.lineTo(mx + s, my + s);
+curCtx.moveTo(mx + s, my - s); curCtx.lineTo(mx - s, my + s); curCtx.stroke();
 } else if (isTransforming) {
-    const s = transformState;
-    const corners = [
-        project(s.x - s.width/2 * s.scale, s.y - s.height/2 * s.scale),
-        project(s.x + s.width/2 * s.scale, s.y - s.height/2 * s.scale),
-        project(s.x + s.width/2 * s.scale, s.y + s.height/2 * s.scale),
-        project(s.x - s.width/2 * s.scale, s.y + s.height/2 * s.scale)
-    ];
-    curCtx.strokeStyle = '#D38E3F'; curCtx.lineWidth = 2;
-    curCtx.beginPath(); curCtx.moveTo(corners[0].x, corners[0].y);
-    corners.forEach(c => curCtx.lineTo(c.x, c.y)); curCtx.closePath(); curCtx.stroke();
-    corners.forEach(c => { curCtx.fillStyle = '#D38E3F'; curCtx.fillRect(c.x - 6, c.y - 6, 12, 12); });
+const s = transformState;
+const sc = INTERNAL_RES / (BASE_DISPLAY_SIZE * zoom);
+const hw = (s.width / 2) * s.scale;
+const hh = (s.height / 2) * s.scale;
+const getCorner = (cx, cy) => {
+const rx = cx * Math.cos(s.rotation) - cy * Math.sin(s.rotation);
+const ry = cx * Math.sin(s.rotation) + cy * Math.cos(s.rotation);
+return project(s.x + rx, s.y + ry);
+};
+const cTL = getCorner(-hw, -hh);
+const cTR = getCorner(hw, -hh);
+const cBR = getCorner(hw, hh);
+const cBL = getCorner(-hw, hh);
+const cMidTop = getCorner(0, -hh);
+const cRot = getCorner(0, -hh - 60 * sc);
+// Draw bounding box
+curCtx.strokeStyle = '#D38E3F'; curCtx.lineWidth = 2;
+curCtx.beginPath();
+curCtx.moveTo(cTL.x, cTL.y); curCtx.lineTo(cTR.x, cTR.y);
+curCtx.lineTo(cBR.x, cBR.y); curCtx.lineTo(cBL.x, cBL.y);
+curCtx.closePath(); curCtx.stroke();
+// Draw Rotation Arm
+curCtx.beginPath(); curCtx.moveTo(cMidTop.x, cMidTop.y);
+curCtx.lineTo(cRot.x, cRot.y); curCtx.stroke();
+// Helper for handles (Enlarged and with outlines for visibility)
+const drawHandle = (p, isCircle = false) => {
+curCtx.fillStyle = '#D38E3F'; curCtx.strokeStyle = 'white'; curCtx.lineWidth = 2;
+if (isCircle) {
+curCtx.beginPath(); curCtx.arc(p.x, p.y, 12, 0, Math.PI*2);
+curCtx.fill(); curCtx.stroke();
+} else {
+curCtx.fillRect(p.x - 10, p.y - 10, 20, 20);
+curCtx.strokeRect(p.x - 10, p.y - 10, 20, 20);
+}
+};
+drawHandle(cTL); drawHandle(cTR); drawHandle(cBR); drawHandle(cBL);
+drawHandle(cRot, true);
 } else if (!isSpaceDown && pos.rawX >= vRect.left && pos.rawX <= vRect.right) {
-    curCtx.strokeStyle = outlineColor; curCtx.lineWidth = 1;
-    const screenRadius = (brushSize / 2) * (sRect.width / INTERNAL_RES);
-    if (brushTip === 'round') { curCtx.beginPath(); curCtx.arc(mx, my, screenRadius, 0, Math.PI * 2); curCtx.stroke(); }
-    else { curCtx.strokeRect(mx - screenRadius, my - screenRadius/3, screenRadius*2, screenRadius*2/3); }
+curCtx.strokeStyle = outlineColor; curCtx.lineWidth = 1;
+const screenRadius = (brushSize / 2) * (sRect.width / INTERNAL_RES);
+if (brushTip === 'round') { curCtx.beginPath(); curCtx.arc(mx, my, screenRadius, 0, Math.PI * 2); curCtx.stroke(); }
+else { curCtx.strokeRect(mx - screenRadius, my - screenRadius/3, screenRadius*2, screenRadius*2/3); }
 }
 curCtx.restore();
 }
-
 function renderDab(ctx, x, y, size, colorString, hardness, currentFlow) {
 ctx.save(); ctx.translate(x, y); ctx.globalAlpha = currentFlow;
 if (brushTip === 'round') {
 const rad = size / 2; const innerRad = rad * Math.min(hardness, 0.999);
-const grad = ctx.createRadialGradient(0, 0, innerRad, 0, 0, rad);
-grad.addColorStop(0, colorString); grad.addColorStop(1, colorString.replace('rgb', 'rgba').replace(')', ', 0)'));
-ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(0, 0, rad, 0, Math.PI * 2); ctx.fill();
+const grid = ctx.createRadialGradient(0, 0, innerRad, 0, 0, rad);
+grid.addColorStop(0, colorString); grid.addColorStop(1, colorString.replace('rgb', 'rgba').replace(')', ', 0)'));
+ctx.fillStyle = grid; ctx.beginPath(); ctx.arc(0, 0, rad, 0, Math.PI * 2); ctx.fill();
 } else { ctx.fillStyle = colorString; ctx.fillRect(-size/2, -size/6, size, size/3); }
 ctx.restore();
 }
-
 function getEngineColor(h, s, v) {
 h = (h + 360) % 360; s = Math.max(0, Math.min(100, s)) / 100; v = Math.max(0, Math.min(100, v)) / 100;
 const f = n => v * (1 - s * Math.max(0, Math.min((n + h / 60) % 6, 4 - (n + h / 60) % 6, 1)));
 return `rgb(${Math.round(f(5) * 255)},${Math.round(f(3) * 255)},${Math.round(f(1) * 255)})`;
 }
-
 function draw(e) {
 const pos = getPos(e);
-const layer = layers[activeIdx]; if (!layer || !layer.visible) return;
-
-// Dynamic Pressure Calculations
-let finalOpacity = opacity; 
-if (usePressure && e.pressure !== undefined && e.pressure > 0) finalOpacity *= e.pressure;
-
-let finalBrushSize = brushSize;
-if (usePressureSize && e.pressure !== undefined && e.pressure > 0) finalBrushSize *= e.pressure;
-
-const spacingPx = Math.max(1, finalBrushSize * brushSettings.spacing);
-const dist = Math.hypot(pos.x - lastX, pos.y - lastY);
+const layer = layers[activeIdx];
+if (!layer || !layer.visible) return;
+const lerp = (a, b, t) => a + (b - a) * t;
+const smoothFactor = 0.5;
+const currentX = lerp(lastX, pos.x, smoothFactor);
+const currentY = lerp(lastY, pos.y, smoothFactor);
+let targetPressure = (e.pressure !== undefined && e.pressure > 0) ? e.pressure : 1.0;
+const smoothP = lerp(lastPressure, targetPressure, 0.5);
+const dist = Math.hypot(currentX - lastX, currentY - lastY);
 brushSettings.distSinceLastDab += dist;
-
-while (brushSettings.distSinceLastDab >= spacingPx) {
-const ratio = (spacingPx - (brushSettings.distSinceLastDab - dist)) / dist;
-const dabX = lastX + (pos.x - lastX) * (isNaN(ratio) ? 1 : ratio);
-const dabY = lastY + (pos.y - lastY) * (isNaN(ratio) ? 1 : ratio);
-let renderX = dabX, renderY = dabY;
-if (brushSettings.scatter > 0) { renderX += (Math.random() - 0.5) * brushSettings.scatter * finalBrushSize; renderY += (Math.random() - 0.5) * brushSettings.scatter * finalBrushSize; }
+if (dist > 0) {
+while (brushSettings.distSinceLastDab >= 0) {
+const t = Math.max(0, Math.min(1, (dist - brushSettings.distSinceLastDab) / dist));
+const interpX = lerp(lastX, currentX, t);
+const interpY = lerp(lastY, currentY, t);
+const interpP = lerp(lastPressure, smoothP, t);
+let finalBrushSize = brushSize;
+if (usePressureSize) finalBrushSize *= interpP;
+const spacingPx = Math.max(0.5, finalBrushSize * brushSettings.spacing);
+if (brushSettings.distSinceLastDab < spacingPx) break;
+let finalOpacity = opacity;
+if (usePressure) finalOpacity *= interpP;
+let renderX = interpX, renderY = interpY;
+if (brushSettings.scatter > 0) {
+renderX += (Math.random() - 0.5) * brushSettings.scatter * finalBrushSize;
+renderY += (Math.random() - 0.5) * brushSettings.scatter * finalBrushSize;
+}
 let dH = brushSettings.strokeHueOffset, dS = brushSettings.strokeSatOffset, dV = brushSettings.strokeBriOffset;
-if (brushSettings.jitterMode === 'tip') { dH = (Math.random() - 0.5) * brushSettings.hueJitter * 360; dS = (Math.random() - 0.5) * brushSettings.satJitter * 100; dV = (Math.random() - 0.5) * brushSettings.briJitter * 100; }
-
+if (brushSettings.jitterMode === 'tip') {
+dH = (Math.random() - 0.5) * brushSettings.hueJitter * 360;
+dS = (Math.random() - 0.5) * brushSettings.satJitter * 100;
+dV = (Math.random() - 0.5) * brushSettings.briJitter * 100;
+}
 if (mode === 'smudge' && smudgeBuffer) {
 activeStrokeCtx.save();
 activeStrokeCtx.globalAlpha = finalOpacity * brushSettings.flow;
@@ -1379,28 +1437,26 @@ applySelectionMask(activeStrokeCtx);
 renderDab(activeStrokeCtx, renderX, renderY, finalBrushSize, dabColor, brushSettings.hardness, finalOpacity * brushSettings.flow);
 activeStrokeCtx.restore();
 }
-brushSettings.distSinceLastDab -= spacingPx; brushSettings.lastDabX = dabX; brushSettings.lastDabY = dabY;
+brushSettings.distSinceLastDab -= spacingPx;
 }
 }
-
-function floodFill(x,y) { 
-    const l = layers[activeIdx]; 
-    const buffer = document.createElement('canvas'); 
-    buffer.width = buffer.height = INTERNAL_RES;
-    const bctx = buffer.getContext('2d');
-
-    bctx.fillStyle = color; 
-    bctx.fillRect(0,0,INTERNAL_RES,INTERNAL_RES); 
-    applySelectionMask(bctx); // Restricted to lasso area
-
-    l.ctx.save();
-    l.ctx.globalAlpha = opacity; 
-    if (l.alphaLocked) l.ctx.globalCompositeOperation = 'source-atop'; 
-    l.ctx.drawImage(buffer, 0, 0);
-    l.ctx.restore(); 
-    renderStack(); 
+lastX = currentX; lastY = currentY; lastPressure = smoothP;
 }
-
+function floodFill(x,y) {
+const l = layers[activeIdx];
+const buffer = document.createElement('canvas');
+buffer.width = buffer.height = INTERNAL_RES;
+const bctx = buffer.getContext('2d');
+bctx.fillStyle = color;
+bctx.fillRect(0,0,INTERNAL_RES,INTERNAL_RES);
+applySelectionMask(bctx);
+l.ctx.save();
+l.ctx.globalAlpha = opacity;
+if (l.alphaLocked) l.ctx.globalCompositeOperation = 'source-atop';
+l.ctx.drawImage(buffer, 0, 0);
+l.ctx.restore();
+renderStack();
+}
 function captureState() {
 return {
 activeIdx: activeIdx,
@@ -1411,39 +1467,43 @@ return { ...l, canvas: canvasCopy, ctx: canvasCopy.getContext('2d') };
 })
 };
 }
-
 function saveUndo() { redoStack.length = 0; undoStack.push(captureState()); if (undoStack.length > 20) undoStack.shift(); }
 function undo() { if (!undoStack.length) return; redoStack.push(captureState()); const snapshot = undoStack.pop(); layers = snapshot.layers; activeIdx = snapshot.activeIdx; refreshUI(); renderStack(); }
 function redo() { if (!redoStack.length) return; undoStack.push(captureState()); const snapshot = redoStack.pop(); layers = snapshot.layers; activeIdx = snapshot.activeIdx; refreshUI(); renderStack(); }
 function exportCanvas() { const a = document.createElement('a'); a.download = 'chroma_export.png'; a.href = displayCanvas.toDataURL(); a.click(); }
-
-function setMode(m) { 
-    mode = m; 
-    if (m === 'bucket' || m === 'gradient') {
-        lastBucketTool = m;
-        document.getElementById('bucket-icon').className = (m === 'bucket') ? 'fas fa-fill-drip' : 'fas fa-stream';
-    }
-    document.getElementById('gradientOptions').classList.toggle('hidden', m !== 'gradient');
-    document.getElementById('gradientOptions').classList.toggle('flex', m === 'gradient');
-    document.getElementById('lassoOptions').classList.toggle('hidden', m !== 'lasso');
-    document.getElementById('lassoOptions').classList.toggle('flex', m === 'lasso');
-    document.querySelectorAll('.tool-btn').forEach(b => {
-        b.classList.toggle('active', b.id === `btn-${m}` || (b.id === 'btn-bucket' && (m === 'bucket' || m === 'gradient')));
-    }); 
+function setMode(m) {
+mode = m;
+if (m === 'bucket' || m === 'gradient') {
+lastBucketTool = m;
+document.getElementById('bucket-icon').className = (m === 'bucket') ? 'fas fa-fill-drip' : 'fas fa-stream';
 }
-
-function setBrushTip(t) { brushTip = t; document.querySelectorAll('[id^=btn-tip]').forEach(b => b.classList.toggle('active', b.id === `btn-tip-${t}`)); }
-
+document.getElementById('gradientOptions').classList.toggle('hidden', m !== 'gradient');
+document.getElementById('gradientOptions').classList.toggle('flex', m === 'gradient');
+document.getElementById('lassoOptions').classList.toggle('hidden', m !== 'lasso');
+document.getElementById('lassoOptions').classList.toggle('flex', m === 'lasso');
+document.querySelectorAll('.tool-btn').forEach(b => {
+b.classList.toggle('active', b.id === `btn-${m}` || (b.id === 'btn-bucket' && (m === 'bucket' || m === 'gradient')));
+});
+updateBrushPreview();
+}
+function setBrushTip(t) { brushTip = t; document.querySelectorAll('[id^=btn-tip]').forEach(b => b.classList.toggle('active', b.id === `btn-tip-${t}`)); updateBrushPreview(); }
 function getPos(e) {
-const rect = stack.getBoundingClientRect();
-let x = e.clientX - (rect.left + rect.width / 2), y = e.clientY - (rect.top + rect.height / 2);
+const sRect = stack.getBoundingClientRect();
+// Mouse relative to stack center
+let dx = e.clientX - (sRect.left + sRect.width / 2);
+let dy = e.clientY - (sRect.top + sRect.height / 2);
+// Un-rotate global canvas
 const rad = -(rotation * Math.PI) / 180;
-let rotX = x * Math.cos(rad) - y * Math.sin(rad), rotY = x * Math.sin(rad) + y * Math.cos(rad);
+let rotX = dx * Math.cos(rad) - dy * Math.sin(rad);
+let rotY = dx * Math.sin(rad) + dy * Math.cos(rad);
+// Un-zoom and Un-flip
+const unrotatedWidth = BASE_DISPLAY_SIZE * zoom;
+const sFactor = unrotatedWidth / INTERNAL_RES;
+rotX /= sFactor;
+rotY /= sFactor;
 if (flipH) rotX = -rotX;
-const factor = INTERNAL_RES / (800 * zoom);
-return { x: rotX * factor + INTERNAL_RES/2, y: rotY * factor + INTERNAL_RES/2, rawX: e.clientX, rawY: e.clientY };
+return { x: rotX + INTERNAL_RES/2, y: rotY + INTERNAL_RES/2, rawX: e.clientX, rawY: e.clientY };
 }
-
 function setupHSVSystem() {
 const box = document.getElementById('hsvBox');
 const upd = (e) => {
@@ -1460,38 +1520,35 @@ document.getElementById('slider-h').oninput = (e) => { curH = e.target.value; fi
 document.getElementById('slider-s').oninput = (e) => { curS = e.target.value; finalizeColor(); };
 document.getElementById('slider-v').oninput = (e) => { curV = e.target.value; finalizeColor(); };
 }
-
 function finalizeColor() {
 const h = curH, s = curS/100, v = curV/100;
 const f = n => v * (1 - s * Math.max(0, Math.min((n + h / 60) % 6, 4 - (n + h / 60) % 6, 1)));
 const r = Math.round(f(5) * 255), g = Math.round(f(3) * 255), b = Math.round(f(1) * 255);
 const newRgb = `rgb(${r},${g},${b})`;
 if (activeColorTarget === 'primary') {
-    color = newRgb;
-    colorPreview.style.backgroundColor = color;
+color = newRgb;
+colorPreview.style.backgroundColor = color;
 } else {
-    secondaryColor = newRgb;
-    secondaryColorPreview.style.backgroundColor = secondaryColor;
+secondaryColor = newRgb;
+secondaryColorPreview.style.backgroundColor = secondaryColor;
 }
 hexDisplay.innerText = ("#" + [r,g,b].map(x => x.toString(16).padStart(2, '0')).join('')).toUpperCase();
 document.getElementById('hsvBox').style.backgroundColor = `hsl(${curH}, 100%, 50%)`;
 document.getElementById('hsvPointer').style.left = curS + '%'; document.getElementById('hsvPointer').style.top = (100 - curV) + '%';
 document.getElementById('hueBar').value = curH; document.getElementById('slider-h').value = curH; document.getElementById('slider-s').value = curS; document.getElementById('slider-v').value = curV;
 document.getElementById('hLabel').innerText = Math.round(curH); document.getElementById('sLabel').innerText = Math.round(curS) + '%'; document.getElementById('vLabel').innerText = Math.round(curV) + '%';
+updateBrushPreview();
 }
-
 function applyAdjustment(type) {
 saveUndo(); const l = layers[activeIdx]; origData = l.ctx.getImageData(0,0,INTERNAL_RES, INTERNAL_RES);
 document.getElementById('adjPanel').classList.remove('hidden'); const ctrl = document.getElementById('adjControls'); ctrl.innerHTML = '';
 if(type === 'hsb') [['Hue',-180,180,0,'h'],['Saturation',-100,100,0,'s'],['Brightness',-100,100,0,'v']].forEach(s => createSlider(...s));
 else [['Red',-100,100,0,'r'],['Green',-100,100,0,'g'],['Blue',-100,100,0,'bl']].forEach(s => createSlider(...s));
 }
-
 function createSlider(l, min, max, v, id) {
 const d = document.createElement('div'); d.innerHTML = `<div class="flex justify-between mb-2 text-[9px] uppercase text-gray-500 font-bold"><span>${l}</span><span id="val-${id}">0</span></div><input type="range" id="adj-${id}" min="${min}" max="${max}" value="${v}" class="w-full">`;
 document.getElementById('adjControls').appendChild(d); d.querySelector('input').oninput = (e) => { document.getElementById(`val-${id}`).innerText = e.target.value; runAdj(); };
 }
-
 function runAdj() {
 const data = new ImageData(new Uint8ClampedArray(origData.data), INTERNAL_RES, INTERNAL_RES);
 const p = data.data, isHSL = !!document.getElementById('adj-h');
@@ -1504,15 +1561,12 @@ else { p[i] = Math.max(0, Math.min(255, p[i] + rS)); p[i+1] = Math.max(0, Math.m
 }
 layers[activeIdx].ctx.putImageData(data, 0, 0); renderStack();
 }
-
 function hsvToRgb(h, s, v) {
 h /= 360; s /= 100; v /= 100; const f = n => v * (1 - s * Math.max(0, Math.min((n + h * 6) % 6, 4 - (n + h * 6) % 6, 1)));
 return [Math.round(f(5) * 255), Math.round(f(3) * 255), Math.round(f(1) * 255)];
 }
-
 function confirmAdj() { document.getElementById('adjPanel').classList.add('hidden'); }
 function cancelAdj() { layers[activeIdx].ctx.putImageData(origData, 0, 0); document.getElementById('adjPanel').classList.add('hidden'); renderStack(); }
-
 init();
 </script>
 </body>
