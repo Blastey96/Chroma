@@ -61,7 +61,15 @@ opacity: 0.8;
 #hsvBox { background: linear-gradient(to bottom, transparent, #000), linear-gradient(to right, #fff, transparent); }
 #hueBar { appearance: none; background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f0f); height: 8px; border-radius: 4px; }
 #hueBar::-webkit-slider-thumb { appearance: none; width: 12px; height: 12px; background: white; border-radius: 50%; cursor: pointer; border: 1px solid #000; }
-.draggable-panel { position: absolute; z-index: 2000; cursor: default; }
+.draggable-panel { 
+position: absolute; 
+z-index: 2000; 
+cursor: default; 
+resize: both; 
+overflow: auto; 
+min-width: 220px; 
+min-height: 100px; 
+}
 .panel-header { cursor: move; }
 /* Updated Cursor Canvas to be a fixed overlay on the screen area */
 #cursorCanvas { pointer-events: none; z-index: 6000; position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; }
@@ -124,9 +132,18 @@ CHROMA
 <button onclick="triggerChromaImport()" class="p-2 text-gray-400 hover:text-purple-400 transition-colors" title="Open Chroma Project">
 <i class="fas fa-folder-open"></i>
 </button>
-<button onclick="saveChromaFile()" class="p-2 text-gray-400 hover:text-blue-400 transition-colors" title="Save Chroma Project (.chroma)">
-<i class="fas fa-save"></i>
-</button>
+<div class="relative flex flex-col items-center">
+    <button id="btn-save" class="p-2 text-gray-400 hover:text-blue-400 transition-colors" 
+    onpointerdown="startToolHold('save')" onpointerup="endToolHold('save')"
+    onclick="saveChromaFile()" title="Save (Ctrl+S) / Hold for Save As">
+    <i class="fas fa-save"></i>
+    </button>
+    <!-- Header Dropdown for Save Options -->
+    <div id="save-popup" class="tool-popup hidden" style="left: 50%; transform: translateX(-50%); top: 100%; margin-left: 0; margin-top: 5px; width: 120px;">
+        <button onclick="saveChromaFile()" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F] flex items-center gap-2 text-[9px] font-bold uppercase w-full"><i class="fas fa-save"></i> Save</button>
+        <button onclick="saveAsChromaFile()" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F] flex items-center gap-2 text-[9px] font-bold uppercase w-full"><i class="fas fa-file-export"></i> Save As...</button>
+    </div>
+</div>
 <button onclick="exportCanvas()" class="p-2 text-gray-400 hover:text-[#D38E3F] transition-colors" title="Export PNG">
 <i class="fas fa-file-export"></i>
 </button>
@@ -261,7 +278,7 @@ onclick="setMode(lastBucketTool)" title="Paint Bucket / Gradient (G)">
 <div id="activeColorPreview" onclick="setActiveColorTarget('primary')" class="absolute left-0 top-0 w-6 h-6 rounded-md border-2 border-white/20 shadow-xl z-20 color-preview-active" style="background-color: #D38E3F;" title="Primary Color (Click to edit)"></div>
 </div>
 </aside>
-<main id="viewport" class="flex-1 relative canvas-container flex items-center justify-center overflow-auto">
+<main id="viewport" class="flex-1 relative canvas-container flex items-center justify-center overflow-hidden">
 <div id="canvasStack" style="width: 800px; height: 800px;">
 <canvas id="displayCanvas"></canvas>
 <canvas id="activeStrokeCanvas"></canvas>
@@ -275,10 +292,10 @@ onclick="setMode(lastBucketTool)" title="Paint Bucket / Gradient (G)">
 <i class="fas fa-grip-lines"></i>
 </div>
 <!-- NEW Brush Preview Section -->
-<div class="w-full h-20 bg-black/20 rounded-xl mb-4 overflow-hidden flex items-center justify-center">
+<div class="w-full h-20 bg-black/20 rounded-xl mb-4 overflow-hidden flex items-center justify-center flex-shrink-0">
 <canvas id="brushPreviewCanvas" width="260" height="80"></canvas>
 </div>
-<div class="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+<div class="space-y-4 pr-2">
 <div>
 <div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Spacing</span><span id="bs-spacing-val">1%</span></div>
 <input type="range" id="bs-spacing" min="1" max="100" value="1" class="hsb-track">
@@ -320,17 +337,17 @@ onclick="setMode(lastBucketTool)" title="Paint Bucket / Gradient (G)">
 </div>
 </div>
 </div>
-<button onclick="toggleBrushSettings()" class="mt-6 w-full py-2 bg-[#D38E3F] text-white text-[9px] font-bold uppercase rounded-lg">Close</button>
+<button onclick="toggleBrushSettings()" class="mt-6 w-full py-2 bg-[#D38E3F] text-white text-[9px] font-bold uppercase rounded-lg flex-shrink-0">Close</button>
 </div>
 <div id="colorPanel" class="draggable-panel left-8 bottom-8 w-64 ui-panel rounded-3xl p-5 shadow-2xl border">
 <div class="panel-header flex justify-between items-center mb-3 text-[9px] font-bold uppercase text-gray-500 tracking-wider">
 <span id="hexDisplay">#D38E3F</span>
 <i class="fas fa-grip-lines"></i>
 </div>
-<div id="hsvBox" class="relative w-full aspect-square rounded-xl mb-4 cursor-crosshair overflow-hidden">
+<div id="hsvBox" class="relative w-full aspect-square rounded-xl mb-4 cursor-crosshair overflow-hidden flex-shrink-0">
 <div id="hsvPointer" class="absolute w-3 h-3 border-2 border-white rounded-full -translate-x-1/2 -translate-y-1/2 pointer-events-none shadow-md"></div>
 </div>
-<input type="range" id="hueBar" min="0" max="360" value="32" class="w-full mb-4">
+<input type="range" id="hueBar" min="0" max="360" value="32" class="w-full mb-4 flex-shrink-0">
 <div class="space-y-2 mt-2">
 <div class="flex flex-col">
 <div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Hue</span><span id="hLabel">32</span></div>
@@ -431,6 +448,7 @@ let layers = [];
 let activeIdx = 0;
 let isPainting = false;
 let brushSize = 30;
+let brushRotation = 0;
 let opacity = 1.0;
 let color = 'rgb(211, 142, 63)';
 let secondaryColor = 'rgb(255, 255, 255)';
@@ -440,13 +458,16 @@ let lastBucketTool = 'bucket';
 let gradientType = 'fg-bg';
 let brushTip = 'round';
 let lastX = 0, lastY = 0;
+let lastInputX = 0, lastInputY = 0;
 // Smoothing logic variables
 let lastPressure = 1.0;
 let strokeHistory = []; // Used for Bezier path smoothing
 let isAltDown = false;
 let isSpaceDown = false;
+let isBacktickDown = false;
 let isPanning = false;
 let panMouseX = 0, panMouseY = 0;
+let panX = 0, panY = 0;
 let usePressure = false;
 let usePressureSize = false;
 let isTransforming = false;
@@ -464,6 +485,7 @@ let activeSelectionPoints = [];
 let lassoFeather = 0;
 let selectionDashOffset = 0;
 let lastMouseData = { x: 0, y: 0, rawX: 0, rawY: 0 };
+let currentFileHandle = null; // Stores file handle for Overwrite Save
 const undoStack = [];
 const redoStack = [];
 const INTERNAL_RES = 1600;
@@ -512,6 +534,7 @@ cursorCanvas.style.opacity = 0;
 window.addEventListener('keydown', handleKeys);
 window.addEventListener('keyup', (e) => {
 if(e.key === 'Alt') isAltDown = false;
+if(e.key === '`') isBacktickDown = false;
 if(e.code === 'Space') {
 isSpaceDown = false;
 isPanning = false;
@@ -569,7 +592,7 @@ const margin = 25;
 const startX = margin;
 const endX = pc.width - margin;
 const centerY = pc.height / 2;
-const drawColor = (mode === 'eraser') ? 'rgb(255,255,255)' : color;
+const drawColor = (mode === 'eraser' || isBacktickDown) ? 'rgb(255,255,255)' : color;
 let previewDist = 0;
 let lx = startX, ly = centerY;
 const steps = 150;
@@ -599,15 +622,22 @@ lx = x; ly = y;
 }
 }
 function triggerChromaImport() {
-document.getElementById('chromaInput').click();
+if ('showOpenFilePicker' in window) {
+    window.showOpenFilePicker({
+        types: [{ description: 'Chroma Project', accept: { 'application/json': ['.chroma'] } }]
+    }).then(([handle]) => {
+        currentFileHandle = handle;
+        return handle.getFile();
+    }).then(file => file.text())
+    .then(text => processChromaData(text))
+    .catch(e => console.log("Import cancelled"));
+} else {
+    document.getElementById('chromaInput').click();
 }
-async function handleChromaImport(e) {
-const file = e.target.files[0];
-if (!file) return;
-const reader = new FileReader();
-reader.onload = async (event) => {
+}
+async function processChromaData(text) {
 try {
-const project = JSON.parse(event.target.result);
+const project = JSON.parse(text);
 if (project.format !== 'chroma') throw new Error("Invalid Chroma file");
 saveUndo();
 layers = [];
@@ -639,14 +669,22 @@ refreshUI();
 renderStack();
 } catch (err) {
 console.error("Chroma Load Error:", err);
-alert("Failed to open Chroma project. File may be corrupted.");
+showToast("Failed to open Chroma project. File may be corrupted.");
 }
+}
+async function handleChromaImport(e) {
+const file = e.target.files[0];
+if (!file) return;
+const reader = new FileReader();
+reader.onload = async (event) => {
+    processChromaData(event.target.result);
+    currentFileHandle = null;
 };
 reader.readAsText(file);
 e.target.value = '';
 }
-function saveChromaFile() {
-const project = {
+function generateChromaProjectObject() {
+return {
 format: 'chroma',
 version: '1.0',
 width: INTERNAL_RES,
@@ -662,13 +700,51 @@ clippingMask: l.clippingMask,
 pixelData: l.canvas.toDataURL('image/png')
 }))
 };
-const blob = new Blob([JSON.stringify(project)], { type: 'application/json' });
-const url = URL.createObjectURL(blob);
-const a = document.createElement('a');
-a.href = url;
-a.download = 'project.chroma';
-a.click();
-URL.revokeObjectURL(url);
+}
+async function saveChromaFile() {
+if (currentFileHandle) {
+    try {
+        const project = generateChromaProjectObject();
+        const writable = await currentFileHandle.createWritable();
+        await writable.write(JSON.stringify(project));
+        await writable.close();
+        showToast("Project Saved Successfully");
+        return;
+    } catch (e) { console.error("Save failed", e); }
+}
+saveAsChromaFile();
+}
+async function saveAsChromaFile() {
+const project = generateChromaProjectObject();
+if ('showSaveFilePicker' in window) {
+    try {
+        const handle = await window.showSaveFilePicker({
+            suggestedName: 'project.chroma',
+            types: [{ description: 'Chroma Project', accept: { 'application/json': ['.chroma'] } }]
+        });
+        currentFileHandle = handle;
+        const writable = await handle.createWritable();
+        await writable.write(JSON.stringify(project));
+        await writable.close();
+        showToast("Project Saved As New File");
+    } catch (e) { console.log("Save cancelled"); }
+} else {
+    const blob = new Blob([JSON.stringify(project)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'project.chroma';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast("Project Downloaded");
+}
+}
+function showToast(msg) {
+const toast = document.createElement('div');
+toast.className = "fixed bottom-10 left-1/2 -translate-x-1/2 bg-black/80 text-white px-6 py-3 rounded-full text-[10px] font-bold uppercase tracking-widest z-[9999] border border-white/10 backdrop-blur-xl transition-all";
+toast.innerText = msg;
+document.body.appendChild(toast);
+setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 500); }, 2500);
 }
 function setupBrushEngineUI() {
 const bind = (id, key, multiplier = 1, isPercent = true) => {
@@ -778,7 +854,7 @@ function changeZoom(delta) { zoom = Math.max(0.1, Math.min(10.0, zoom + delta));
 function changeRotate(delta) { rotation += delta; updateViewport(); }
 function toggleFlip() { flipH = !flipH; updateViewport(); }
 function updateViewport() {
-stack.style.transform = `scale(${zoom}) rotate(${rotation}deg) scaleX(${flipH ? -1 : 1})`;
+stack.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom}) rotate(${rotation}deg) scaleX(${flipH ? -1 : 1})`;
 document.getElementById('zoomVal').innerText = Math.round(zoom * 100) + '%';
 document.getElementById('rotateVal').innerText = (rotation % 360) + '°';
 }
@@ -791,6 +867,7 @@ updateBrushPreview();
 function handleKeys(e) {
 if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
 if (e.key === 'Alt') { e.preventDefault(); isAltDown = true; return; }
+if (e.key === '`') { e.preventDefault(); isBacktickDown = true; return; }
 if (e.code === 'Space') {
 if (!isSpaceDown) {
 isSpaceDown = true;
@@ -807,11 +884,14 @@ if (e.key === '=' || e.key === '+' || e.key === '-' || e.key === '0' || keyLow =
 e.preventDefault();
 if (e.key === '=' || e.key === '+') changeZoom(0.1);
 if (e.key === '-') changeZoom(-0.1);
-if (e.key === '0') { zoom = 1.0; rotation = 0; flipH = false; updateViewport(); }
+if (e.key === '0') { zoom = 1.0; rotation = 0; flipH = false; panX = 0; panY = 0; updateViewport(); }
 if (keyLow === 's') saveChromaFile();
 return;
 }
 }
+if (e.key === 'ArrowRight') { e.preventDefault(); brushRotation += e.shiftKey ? 15 : 1; updateBrushPreview(); }
+if (e.key === 'ArrowLeft') { e.preventDefault(); brushRotation -= e.shiftKey ? 15 : 1; updateBrushPreview(); }
+
 if (e.ctrlKey && e.shiftKey && keyLow === 'z') { e.preventDefault(); redo(); return; }
 if (e.ctrlKey && keyLow === 'z') { e.preventDefault(); undo(); return; }
 if (e.ctrlKey && keyLow === 'n') { e.preventDefault(); addLayer(); }
@@ -1041,7 +1121,7 @@ previewBuffer.width = previewBuffer.height = INTERNAL_RES;
 const pctx = previewBuffer.getContext('2d');
 pctx.drawImage(activeStrokeCanvas, 0, 0);
 applySelectionMask(pctx); // Restricted to lasso area for preview
-if (mode === 'eraser') tctx.globalCompositeOperation = 'destination-out';
+if (mode === 'eraser' || isBacktickDown) tctx.globalCompositeOperation = 'destination-out';
 else if (layer.alphaLocked) tctx.globalCompositeOperation = 'source-atop';
 else tctx.globalCompositeOperation = 'source-over';
 tctx.drawImage(previewBuffer, 0, 0);
@@ -1059,7 +1139,7 @@ previewBuffer.width = previewBuffer.height = INTERNAL_RES;
 const pctx = previewBuffer.getContext('2d');
 pctx.drawImage(activeStrokeCanvas, 0, 0);
 applySelectionMask(pctx); // Restricted to lasso area for preview
-if (mode === 'eraser') bctx.globalCompositeOperation = 'destination-out';
+if (mode === 'eraser' || isBacktickDown) bctx.globalCompositeOperation = 'destination-out';
 else if (layer.alphaLocked) bctx.globalCompositeOperation = 'source-atop';
 else bctx.globalCompositeOperation = 'source-over';
 bctx.drawImage(previewBuffer, 0, 0);
@@ -1072,7 +1152,13 @@ displayCtx.restore();
 }
 function start(e) {
 if (e.pointerType === 'pen' || e.pointerType === 'mouse') { stack.setPointerCapture(e.pointerId); }
-if (isSpaceDown) { isPanning = true; panMouseX = e.clientX; panMouseY = e.clientY; stack.style.cursor = 'grabbing'; return; }
+if (isSpaceDown) {
+isPanning = true;
+panMouseX = e.clientX;
+panMouseY = e.clientY;
+stack.style.cursor = 'grabbing';
+return;
+}
 const pos = getPos(e);
 lastX = pos.x; lastY = pos.y;
 lastInputX = pos.x; lastInputY = pos.y;
@@ -1114,8 +1200,12 @@ draw(e); renderStack();
 }
 function move(e) {
 if (isPanning) {
-viewport.scrollLeft -= (e.clientX - panMouseX); viewport.scrollTop -= (e.clientY - panMouseY);
-panMouseX = e.clientX; panMouseY = e.clientY; return;
+panX += (e.clientX - panMouseX);
+panY += (e.clientY - panMouseY);
+panMouseX = e.clientX;
+panMouseY = e.clientY;
+updateViewport();
+return;
 }
 const pos = getPos(e);
 lastMouseData = pos;
@@ -1202,7 +1292,7 @@ const bctx = buffer.getContext('2d');
 bctx.drawImage(activeStrokeCanvas, 0, 0);
 applySelectionMask(bctx);
 layer.ctx.save();
-if (mode === 'eraser') layer.ctx.globalCompositeOperation = 'destination-out';
+if (mode === 'eraser' || isBacktickDown) layer.ctx.globalCompositeOperation = 'destination-out';
 else if (layer.alphaLocked) layer.ctx.globalCompositeOperation = 'source-atop';
 else layer.ctx.globalCompositeOperation = 'source-over';
 layer.ctx.drawImage(buffer, 0, 0);
@@ -1367,15 +1457,19 @@ curCtx.strokeRect(p.x - 10, p.y - 10, 20, 20);
 drawHandle(cTL); drawHandle(cTR); drawHandle(cBR); drawHandle(cBL);
 drawHandle(cRot, true);
 } else if (!isSpaceDown && pos.rawX >= vRect.left && pos.rawX <= vRect.right) {
+curCtx.save();
+curCtx.translate(mx, my);
+curCtx.rotate((rotation + brushRotation) * Math.PI / 180);
 curCtx.strokeStyle = outlineColor; curCtx.lineWidth = 1;
 const screenRadius = (brushSize / 2) * (sRect.width / INTERNAL_RES);
-if (brushTip === 'round') { curCtx.beginPath(); curCtx.arc(mx, my, screenRadius, 0, Math.PI * 2); curCtx.stroke(); }
-else { curCtx.strokeRect(mx - screenRadius, my - screenRadius/3, screenRadius*2, screenRadius*2/3); }
+if (brushTip === 'round') { curCtx.beginPath(); curCtx.arc(0, 0, screenRadius, 0, Math.PI * 2); curCtx.stroke(); }
+else { curCtx.strokeRect(-screenRadius, -screenRadius/3, screenRadius*2, screenRadius*2/3); }
+curCtx.restore();
 }
 curCtx.restore();
 }
 function renderDab(ctx, x, y, size, colorString, hardness, currentFlow) {
-ctx.save(); ctx.translate(x, y); ctx.globalAlpha = currentFlow;
+ctx.save(); ctx.translate(x, y); ctx.rotate(brushRotation * Math.PI / 180); ctx.globalAlpha = currentFlow;
 if (brushTip === 'round') {
 const rad = size / 2; const innerRad = rad * Math.min(hardness, 0.999);
 const grid = ctx.createRadialGradient(0, 0, innerRad, 0, 0, rad);
@@ -1385,7 +1479,7 @@ ctx.fillStyle = grid; ctx.beginPath(); ctx.arc(0, 0, rad, 0, Math.PI * 2); ctx.f
 ctx.restore();
 }
 function getEngineColor(h, s, v) {
-h = (h + 360) % 360; s = Math.max(0, Math.min(100, s)) / 100; v = Math.max(0, Math.min(100, v)) / 100;
+h = (parseFloat(h) + 360) % 360; s = Math.max(0, Math.min(100, parseFloat(s))) / 100; v = Math.max(0, Math.min(100, parseFloat(v))) / 100;
 const f = n => v * (1 - s * Math.max(0, Math.min((n + h / 60) % 6, 4 - (n + h / 60) % 6, 1)));
 return `rgb(${Math.round(f(5) * 255)},${Math.round(f(3) * 255)},${Math.round(f(1) * 255)})`;
 }
@@ -1431,7 +1525,7 @@ applySelectionMask(activeStrokeCtx);
 activeStrokeCtx.drawImage(smudgeBuffer, renderX - finalBrushSize/2, renderY - finalBrushSize/2, finalBrushSize, finalBrushSize);
 activeStrokeCtx.restore();
 } else {
-const dabColor = (mode === 'eraser') ? 'rgb(255,255,255)' : getEngineColor(curH + dH, curS + dS, curV + dV);
+const dabColor = (mode === 'eraser' || isBacktickDown) ? 'rgb(255,255,255)' : getEngineColor(parseFloat(curH) + dH, parseFloat(curS) + dS, parseFloat(curV) + dV);
 activeStrokeCtx.save();
 applySelectionMask(activeStrokeCtx);
 renderDab(activeStrokeCtx, renderX, renderY, finalBrushSize, dabColor, brushSettings.hardness, finalOpacity * brushSettings.flow);
@@ -1515,13 +1609,13 @@ box.setPointerCapture(e.pointerId); upd(e);
 const mv = (pe) => upd(pe); box.addEventListener('pointermove', mv);
 box.addEventListener('pointerup', () => box.removeEventListener('pointermove', mv), { once: true });
 });
-document.getElementById('hueBar').oninput = (e) => { curH = e.target.value; finalizeColor(); };
-document.getElementById('slider-h').oninput = (e) => { curH = e.target.value; finalizeColor(); };
-document.getElementById('slider-s').oninput = (e) => { curS = e.target.value; finalizeColor(); };
-document.getElementById('slider-v').oninput = (e) => { curV = e.target.value; finalizeColor(); };
+document.getElementById('hueBar').oninput = (e) => { curH = parseFloat(e.target.value); finalizeColor(); };
+document.getElementById('slider-h').oninput = (e) => { curH = parseFloat(e.target.value); finalizeColor(); };
+document.getElementById('slider-s').oninput = (e) => { curS = parseFloat(e.target.value); finalizeColor(); };
+document.getElementById('slider-v').oninput = (e) => { curV = parseFloat(e.target.value); finalizeColor(); };
 }
 function finalizeColor() {
-const h = curH, s = curS/100, v = curV/100;
+const h = parseFloat(curH), s = parseFloat(curS)/100, v = parseFloat(curV)/100;
 const f = n => v * (1 - s * Math.max(0, Math.min((n + h / 60) % 6, 4 - (n + h / 60) % 6, 1)));
 const r = Math.round(f(5) * 255), g = Math.round(f(3) * 255), b = Math.round(f(1) * 255);
 const newRgb = `rgb(${r},${g},${b})`;
