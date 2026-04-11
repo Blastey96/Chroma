@@ -113,7 +113,8 @@ padding: 8px;
 box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 z-index: 100;
 }
-.tool-btn:active + .tool-popup, .tool-popup:hover {
+/* Updated for Tap-to-stay-open stylus interaction */
+.tool-popup.show {
 display: flex;
 flex-direction: column;
 gap: 4px;
@@ -309,13 +310,12 @@ Deselect
 
 <div class="relative flex flex-col items-center">
 <button id="btn-bucket" class="tool-btn p-3 rounded-xl transition-all text-gray-500"
-onpointerdown="startToolHold('bucket')" onpointerup="endToolHold('bucket')"
-onclick="setMode(lastBucketTool)" title="Paint Bucket / Gradient (G)">
+onclick="toggleToolPopup('bucket')" title="Paint Bucket / Gradient (G)">
 <i id="bucket-icon" class="fas fa-fill-drip"></i>
 </button>
 <div id="bucket-popup" class="tool-popup hidden">
-<button onclick="setMode('bucket')" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F]"><i class="fas fa-fill-drip"></i></button>
-<button onclick="setMode('gradient')" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F]"><i class="fas fa-stream"></i></button>
+<button onclick="setMode('bucket'); hideToolPopups()" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F]"><i class="fas fa-fill-drip"></i></button>
+<button onclick="setMode('gradient'); hideToolPopups()" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F]"><i class="fas fa-stream"></i></button>
 </div>
 </div>
 
@@ -332,14 +332,13 @@ onclick="setMode(lastBucketTool)" title="Paint Bucket / Gradient (G)">
 
 <div class="relative flex flex-col items-center">
 <button id="btn-shapes" class="tool-btn p-3 rounded-xl transition-all text-gray-500"
-onpointerdown="startToolHold('shapes')" onpointerup="endToolHold('shapes')"
-onclick="setMode(lastShapeTool)" title="Shapes (Rectangle, Ellipse, Line)">
+onclick="toggleToolPopup('shapes')" title="Shapes (Rectangle, Ellipse, Line)">
 <i id="shape-icon" class="fas fa-shapes"></i>
 </button>
 <div id="shapes-popup" class="tool-popup hidden">
-<button onclick="setMode('rect')" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F]"><i class="far fa-square"></i></button>
-<button onclick="setMode('ellipse')" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F]"><i class="far fa-circle"></i></button>
-<button onclick="setMode('line')" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F]"><i class="fas fa-minus"></i></button>
+<button onclick="setMode('rect'); hideToolPopups()" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F]"><i class="far fa-square"></i></button>
+<button onclick="setMode('ellipse'); hideToolPopups()" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F]"><i class="far fa-circle"></i></button>
+<button onclick="setMode('line'); hideToolPopups()" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F]"><i class="fas fa-minus"></i></button>
 </div>
 </div>
 
@@ -815,6 +814,24 @@ function init() {
     }
     requestAnimationFrame(animateMarchingAnts);
     updateBrushPreview();
+
+    // Ensure persistent click-to-open logic for styluses
+    window.addEventListener('pointerdown', (e) => {
+        if (!e.target.closest('.tool-btn') && !e.target.closest('.tool-popup')) {
+            hideToolPopups();
+        }
+    });
+}
+
+function toggleToolPopup(m) {
+    const popup = document.getElementById(m + '-popup');
+    const isShowing = popup.classList.contains('show');
+    hideToolPopups();
+    if (!isShowing) popup.classList.add('show');
+}
+
+function hideToolPopups() {
+    document.querySelectorAll('.tool-popup').forEach(p => p.classList.remove('show'));
 }
 
 function toggleRefWindow() {
@@ -1115,8 +1132,8 @@ function setupBrushEngineUI() {
     document.getElementById('bs-jitterMode').onchange = (e) => { brushSettings.jitterMode = e.target.value; updateBrushPreview(); };
 }
 
-function startToolHold(m) { toolHoldTimer = setTimeout(() => { document.getElementById(m + '-popup').classList.remove('hidden'); }, 500); }
-function endToolHold(m) { if (toolHoldTimer) clearTimeout(toolHoldTimer); setTimeout(() => { if (!document.getElementById(m + '-popup').matches(':hover')) { document.getElementById(m + '-popup').classList.add('hidden'); } }, 2000); }
+function startToolHold(m) { }
+function endToolHold(m) { }
 function toggleBrushSettings() { const panel = document.getElementById('brushSettingsPanel'); panel.classList.toggle('hidden'); if(!panel.classList.contains('hidden')) { bringToFront(panel); updateBrushPreview(); } document.getElementById('btn-brush-settings').classList.toggle('active', !panel.classList.contains('hidden')); }
 function toggleBrushLibrary() { const panel = document.getElementById('brushLibraryPanel'); panel.classList.toggle('hidden'); if(!panel.classList.contains('hidden')) bringToFront(panel); document.getElementById('btn-brush-library').classList.toggle('active', !panel.classList.contains('hidden')); }
 
@@ -1708,7 +1725,6 @@ function runAdj() {
     } else if (isNoise) {
         const amt = parseInt(document.getElementById('adj-noise').value);
         for (let i = 0; i < p.length; i += 4) { if (p[i+3] === 0) continue; const n = (Math.random() - 0.5) * amt * 2.5; p[i] = Math.max(0, Math.min(255, p[i] + n)); p[i+1] = Math.max(0, Math.min(255, p[i+1] + n)); p[i+2] = Math.max(0, Math.min(255, p[i+2] + n)); }
-        // The user asked to zoom in. We use the slider to set global zoom for the preview.
         zoom = parseFloat(document.getElementById('adj-zoom').value); updateViewport();
     } else if (isChroma) {
         const spread = parseInt(document.getElementById('adj-spread').value);
