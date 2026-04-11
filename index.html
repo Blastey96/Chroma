@@ -344,8 +344,8 @@ onclick="setMode(lastBucketTool)" title="Paint Bucket / Gradient (G)">
 </div>
 </aside>
 
-<!-- FLOATING DRAGGABLE PANELS (Moved to Root) -->
-<div id="brushLibraryPanel" class="draggable-panel hidden right-[340px] bottom-[120px] w-64 ui-panel rounded-3xl p-5 shadow-2xl border flex flex-col">
+<!-- FLOATING DRAGGABLE PANELS (Root Context) -->
+<div id="brushLibraryPanel" class="draggable-panel hidden right-[340px] top-[450px] w-64 ui-panel rounded-3xl p-5 shadow-2xl border flex flex-col">
     <div class="panel-header flex justify-between items-center mb-4 text-[9px] font-bold uppercase text-[#D38E3F] tracking-wider">
         <span>Brush Library</span>
         <i class="fas fa-grip-lines"></i>
@@ -558,10 +558,9 @@ jitterMode: 'tip',
 strokeHueOffset: 0,
 strokeSatOffset: 0,
 strokeBriOffset: 0,
-lastDabX: 0,
-lastDabY: 0,
-distSinceLastDab: 0
+lastDabX: 0, lastDabY: 0, distSinceLastDab: 0
 };
+
 function init() {
 displayCanvas.width = activeStrokeCanvas.width = INTERNAL_RES;
 displayCanvas.height = activeStrokeCanvas.height = INTERNAL_RES;
@@ -1199,11 +1198,12 @@ lassoFeather = parseInt(val);
 document.getElementById('lassoFeatherVal').innerText = val + 'px';
 if (activeSelectionPoints.length > 0) generateMask();
 }
+
 function setupDraggable(el) {
 let nx = 0, ny = 0;
 el.addEventListener('pointerdown', (e) => {
     // Exclude interactive elements from triggering a drag
-    if (['BUTTON', 'INPUT', 'SELECT', 'CANVAS'].includes(e.target.tagName) || e.target.closest('.brush-grid-item')) return;
+    if (['BUTTON', 'INPUT', 'SELECT', 'CANVAS'].includes(e.target.tagName) || e.target.closest('.brush-grid-item') || e.target.closest('#hsvBox')) return;
     
     bringToFront(el);
     el.setPointerCapture(e.pointerId);
@@ -1228,7 +1228,7 @@ el.addEventListener('pointerdown', (e) => {
 });
 // Also bring to front on simple clicks on inputs
 el.addEventListener('pointerdown', (e) => {
-    if (['BUTTON', 'INPUT', 'SELECT', 'CANVAS'].includes(e.target.tagName) || e.target.closest('.brush-grid-item')) {
+    if (['BUTTON', 'INPUT', 'SELECT', 'CANVAS'].includes(e.target.tagName) || e.target.closest('.brush-grid-item') || e.target.closest('#hsvBox')) {
         bringToFront(el);
     }
 });
@@ -1267,7 +1267,8 @@ const canvas = document.createElement('canvas'); canvas.width = canvas.height = 
 const ctx = canvas.getContext('2d', { willReadFrequently: true });
 if (isWhite) { ctx.fillStyle = 'white'; ctx.fillRect(0, 0, INTERNAL_RES, INTERNAL_RES); }
 const layer = { id: Date.now() + Math.random(), name: name || `Layer ${layers.length + 1}`, canvas, ctx, visible: true, alphaLocked: false, clippingMask: false, blendMode: 'source-over', opacity: 1.0 };
-layers.unshift(layer); activeIdx = 0; refreshUI(); renderStack();
+// Insert on top of active layer
+layers.splice(activeIdx, 0, layer); refreshUI(); renderStack();
 }
 function duplicateLayer() {
 const source = layers[activeIdx]; if (!source) return;
@@ -1758,25 +1759,36 @@ if (isClosed) curCtx.closePath();
 curCtx.stroke();
 curCtx.restore();
 }
-// 1. Eyedropper visual feedback
+// 1. High-precision Sampling Target feedback
 if (isAltDown) {
-curCtx.save();
-curCtx.translate(mx, my);
-curCtx.rotate(-Math.PI / 4);
-curCtx.strokeStyle = outlineColor;
-curCtx.fillStyle = color;
-curCtx.lineWidth = 2;
-// Draw Eyedropper Shape
-curCtx.beginPath();
-curCtx.roundRect(-3, -16, 6, 20, 2); // body
-curCtx.moveTo(-3, 4); curCtx.lineTo(0, 10); curCtx.lineTo(3, 4); // tip
-curCtx.stroke();
-curCtx.fill();
-curCtx.beginPath();
-curCtx.arc(0, -18, 5, 0, Math.PI * 2); // bulb
-curCtx.stroke();
-curCtx.restore();
-return;
+    curCtx.save();
+    curCtx.translate(mx, my);
+    
+    // Outer shadow ring
+    curCtx.beginPath();
+    curCtx.arc(0, 0, 12, 0, Math.PI * 2);
+    curCtx.strokeStyle = outlineColor;
+    curCtx.lineWidth = 2;
+    curCtx.stroke();
+    
+    // Inner color fill
+    curCtx.beginPath();
+    curCtx.arc(0, 0, 10, 0, Math.PI * 2);
+    curCtx.fillStyle = color;
+    curCtx.fill();
+    
+    // Precise crosshairs
+    curCtx.beginPath();
+    curCtx.moveTo(-15, 0); curCtx.lineTo(-5, 0);
+    curCtx.moveTo(15, 0); curCtx.lineTo(5, 0);
+    curCtx.moveTo(0, -15); curCtx.lineTo(0, -5);
+    curCtx.moveTo(0, 15); curCtx.lineTo(0, 5);
+    curCtx.strokeStyle = outlineColor;
+    curCtx.lineWidth = 1;
+    curCtx.stroke();
+    
+    curCtx.restore();
+    return;
 }
 if (activeSelectionPoints.length > 2) {
 curCtx.strokeStyle = outlineColor;
@@ -1855,10 +1867,20 @@ function renderDab(ctx, x, y, size, colorString, hardness, currentFlow) {
     ctx.globalAlpha = currentFlow;
 
     if (brushTip === 'round') {
-        const rad = size / 2; const innerRad = rad * Math.min(hardness, 0.999);
-        const grid = ctx.createRadialGradient(0, 0, innerRad, 0, 0, rad);
-        grid.addColorStop(0, colorString); grid.addColorStop(1, colorString.replace('rgb', 'rgba').replace(')', ', 0)'));
-        ctx.fillStyle = grid; ctx.beginPath(); ctx.arc(0, 0, rad, 0, Math.PI * 2); ctx.fill();
+        const rad = size / 2; 
+        if (hardness >= 0.99) {
+            ctx.fillStyle = colorString;
+            ctx.beginPath(); ctx.arc(0, 0, rad, 0, Math.PI * 2); ctx.fill();
+        } else {
+            // Natural hardness falloff for airbrush feel
+            const innerRad = rad * hardness; 
+            const grid = ctx.createRadialGradient(0, 0, innerRad, 0, 0, rad);
+            grid.addColorStop(0, colorString); 
+            // Better Gaussian-style falloff stop
+            grid.addColorStop(Math.max(hardness, 0.1), colorString.replace('rgb', 'rgba').replace(')', `, ${0.8 * Math.sqrt(hardness + 0.05)})`));
+            grid.addColorStop(1, colorString.replace('rgb', 'rgba').replace(')', ', 0)'));
+            ctx.fillStyle = grid; ctx.beginPath(); ctx.arc(0, 0, rad, 0, Math.PI * 2); ctx.fill();
+        }
     } else if (brushTip === 'flat') { 
         ctx.fillStyle = colorString; 
         ctx.fillRect(-size/2, -size/6, size, size/3); 
@@ -1875,59 +1897,6 @@ function getEngineColor(h, s, v) {
 h = (parseFloat(h) + 360) % 360; s = Math.max(0, Math.min(100, parseFloat(s))) / 100; v = Math.max(0, Math.min(100, parseFloat(v))) / 100;
 const f = n => v * (1 - s * Math.max(0, Math.min((n + h / 60) % 6, 4 - (n + h / 60) % 6, 1)));
 return `rgb(${Math.round(f(5) * 255)},${Math.round(f(3) * 255)},${Math.round(f(1) * 255)})`;
-}
-function draw(e) {
-const pos = getPos(e);
-const layer = layers[activeIdx];
-if (!layer || !layer.visible) return;
-const lerp = (a, b, t) => a + (b - a) * t;
-const smoothFactor = 0.5;
-const currentX = lerp(lastX, pos.x, smoothFactor);
-const currentY = lerp(lastY, pos.y, smoothFactor);
-let targetPressure = (e.pressure !== undefined && e.pressure > 0) ? e.pressure : 1.0;
-const smoothP = lerp(lastPressure, targetPressure, 0.5);
-const dist = Math.hypot(currentX - lastX, currentY - lastY);
-brushSettings.distSinceLastDab += dist;
-if (dist > 0) {
-while (brushSettings.distSinceLastDab >= 0) {
-const t = Math.max(0, Math.min(1, (dist - brushSettings.distSinceLastDab) / dist));
-const interpX = lerp(lastX, currentX, t);
-const interpY = lerp(lastY, currentY, t);
-const interpP = lerp(lastPressure, smoothP, t);
-let finalBrushSize = brushSize;
-if (usePressureSize) finalBrushSize *= interpP;
-const spacingPx = Math.max(0.5, finalBrushSize * brushSettings.spacing);
-if (brushSettings.distSinceLastDab < spacingPx) break;
-let finalOpacity = opacity;
-if (usePressure) finalOpacity *= interpP;
-let renderX = interpX, renderY = interpY;
-if (brushSettings.scatter > 0) {
-renderX += (Math.random() - 0.5) * brushSettings.scatter * finalBrushSize;
-renderY += (Math.random() - 0.5) * brushSettings.scatter * finalBrushSize;
-}
-let dH = brushSettings.strokeHueOffset, dS = brushSettings.strokeSatOffset, dV = brushSettings.strokeBriOffset;
-if (brushSettings.jitterMode === 'tip') {
-dH = (Math.random() - 0.5) * brushSettings.hueJitter * 360;
-dS = (Math.random() - 0.5) * brushSettings.satJitter * 100;
-dV = (Math.random() - 0.5) * brushSettings.briJitter * 100;
-}
-if (mode === 'smudge' && smudgeBuffer) {
-activeStrokeCtx.save();
-activeStrokeCtx.globalAlpha = finalOpacity * brushSettings.flow;
-applySelectionMask(activeStrokeCtx);
-activeStrokeCtx.drawImage(smudgeBuffer, renderX - finalBrushSize/2, renderY - finalBrushSize/2, finalBrushSize, finalBrushSize);
-activeStrokeCtx.restore();
-} else {
-const dabColor = (mode === 'eraser' || isBacktickDown) ? 'rgb(255,255,255)' : getEngineColor(parseFloat(curH) + dH, parseFloat(curS) + dS, parseFloat(curV) + dV);
-activeStrokeCtx.save();
-applySelectionMask(activeStrokeCtx);
-renderDab(activeStrokeCtx, renderX, renderY, finalBrushSize, dabColor, brushSettings.hardness, finalOpacity * brushSettings.flow);
-activeStrokeCtx.restore();
-}
-brushSettings.distSinceLastDab -= spacingPx;
-}
-}
-lastX = currentX; lastY = currentY; lastPressure = smoothP;
 }
 
 function floodFill(x,y) {
@@ -1993,22 +1962,48 @@ rotY /= sFactor;
 if (flipH) rotX = -rotX;
 return { x: rotX + INTERNAL_RES/2, y: rotY + INTERNAL_RES/2, rawX: e.clientX, rawY: e.clientY };
 }
+
 function setupHSVSystem() {
 const box = document.getElementById('hsvBox');
+let isHSVDragging = false;
+
 const upd = (e) => {
-const r = box.getBoundingClientRect(); curS = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * 100; curV = (1 - Math.max(0, Math.min(1, (e.clientY - r.top) / r.height))) * 100;
-finalizeColor();
+    const r = box.getBoundingClientRect(); 
+    curS = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * 100; 
+    curV = (1 - Math.max(0, Math.min(1, (e.clientY - r.top) / r.height))) * 100;
+    finalizeColor();
 };
-box.addEventListener('pointerdown', (e) => {
-box.setPointerCapture(e.pointerId); upd(e);
-const mv = (pe) => upd(pe); box.addEventListener('pointermove', mv);
-box.addEventListener('pointerup', () => box.removeEventListener('pointermove', mv), { once: true });
-});
+
+const pointerDownHandler = (e) => {
+    // Only respond to left clicks for selection
+    if (e.button !== 0) return;
+    isHSVDragging = true;
+    box.setPointerCapture(e.pointerId);
+    upd(e);
+};
+
+const pointerMoveHandler = (e) => {
+    if (isHSVDragging) upd(e);
+};
+
+const pointerUpHandler = (e) => {
+    if (isHSVDragging) {
+        isHSVDragging = false;
+        box.releasePointerCapture(e.pointerId);
+    }
+};
+
+box.addEventListener('pointerdown', pointerDownHandler);
+box.addEventListener('pointermove', pointerMoveHandler);
+box.addEventListener('pointerup', pointerUpHandler);
+box.addEventListener('pointercancel', pointerUpHandler);
+
 document.getElementById('hueBar').oninput = (e) => { curH = parseFloat(e.target.value); finalizeColor(); };
 document.getElementById('slider-h').oninput = (e) => { curH = parseFloat(e.target.value); finalizeColor(); };
 document.getElementById('slider-s').oninput = (e) => { curS = parseFloat(e.target.value); finalizeColor(); };
 document.getElementById('slider-v').oninput = (e) => { curV = parseFloat(e.target.value); finalizeColor(); };
 }
+
 function finalizeColor() {
 const h = parseFloat(curH), s = parseFloat(curS)/100, v = parseFloat(curV)/100;
 const f = n => v * (1 - s * Math.max(0, Math.min((n + h / 60) % 6, 4 - (n + h / 60) % 6, 1)));
