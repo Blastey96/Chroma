@@ -6,7 +6,6 @@
 <title>Chroma | Professional Painting Suite</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<!-- ag-psd library removed in favor of native .chroma format -->
 <style>
 :root {
 --bg-main: #0a0a0a;
@@ -40,18 +39,16 @@ body { background-color: var(--bg-main); color: var(--text-main); font-family: '
 #canvasStack {
 position: relative;
 box-shadow: 0 0 50px rgba(0,0,0,0.5);
-/* Professional Checkerboard Pattern for transparency */
 background-color: #ffffff;
-background-image: 
-    linear-gradient(45deg, #e0e0e0 25%, transparent 25%), 
-    linear-gradient(-45deg, #e0e0e0 25%, transparent 25%), 
-    linear-gradient(45deg, transparent 75%, #e0e0e0 75%), 
-    linear-gradient(-45deg, transparent 75%, #e0e0e0 75%);
+background-image:
+linear-gradient(45deg, #e0e0e0 25%, transparent 25%),
+linear-gradient(-45deg, #e0e0e0 25%, transparent 25%),
+linear-gradient(45deg, transparent 75%, #e0e0e0 75%),
+linear-gradient(-45deg, transparent 75%, #e0e0e0 75%);
 background-size: 20px 20px;
 background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
 cursor: none;
 line-height: 0;
-/* Removed transition to prevent alignment lag during zoom/rotate */
 transform-origin: center center;
 touch-action: none;
 }
@@ -69,20 +66,18 @@ opacity: 0.8;
 #hsvBox { background: linear-gradient(to bottom, transparent, #000), linear-gradient(to right, #fff, transparent); }
 #hueBar { appearance: none; background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f0f); height: 8px; border-radius: 4px; }
 #hueBar::-webkit-slider-thumb { appearance: none; width: 12px; height: 12px; background: white; border-radius: 50%; cursor: pointer; border: 1px solid #000; }
-.draggable-panel { 
-position: absolute; 
-z-index: 2000; 
-cursor: move; 
-resize: both; 
-overflow: auto; 
-min-width: 220px; 
-min-height: 100px; 
+.draggable-panel {
+position: absolute;
+z-index: 2000;
+cursor: move;
+resize: both;
+overflow: auto;
+min-width: 220px;
+min-height: 100px;
 }
 .draggable-panel * { cursor: default; }
 .draggable-panel .panel-header { cursor: move; }
 .draggable-panel button, .draggable-panel input, .draggable-panel select, .draggable-panel canvas, .draggable-panel .brush-grid-item { cursor: pointer; }
-
-/* Updated Cursor Canvas to be a fixed overlay on the screen area */
 #cursorCanvas { pointer-events: none; z-index: 6000; position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; }
 .clipping-indent { margin-left: 12px; border-left: 2px solid #D38E3F; padding-left: 8px; }
 .hsb-track { height: 6px; border-radius: 3px; appearance: none; background: var(--input-border); margin: 8px 0; width: 100%; }
@@ -102,7 +97,6 @@ letter-spacing: 0.05em;
 }
 select:focus { border-color: #D38E3F; }
 .layer-opacity-slider { height: 4px; width: 100%; }
-/* UI overrides for light mode text */
 .light-mode .text-gray-500 { color: var(--text-header); }
 .light-mode .text-gray-400 { color: var(--text-dim); }
 .light-mode .text-gray-600 { color: var(--text-main); }
@@ -132,7 +126,6 @@ gap: 4px;
 </style>
 </head>
 <body class="flex flex-col h-screen">
-<!-- HEADER -->
 <header class="h-14 ui-panel flex items-center px-6 justify-between z-50 border-b">
 <div class="flex items-center gap-6">
 <h1 class="text-[11px] font-black tracking-[0.4em] text-[#D38E3F] uppercase flex items-center gap-2">
@@ -143,22 +136,20 @@ gap: 4px;
 </svg>
 CHROMA
 </h1>
-<!-- File Operations Icons (Updated for .chroma format) -->
 <div class="flex items-center gap-1 border-l border-white/10 pl-4 h-8">
 <button onclick="triggerChromaImport()" class="p-2 text-gray-400 hover:text-purple-400 transition-colors" title="Open Chroma Project">
 <i class="fas fa-folder-open"></i>
 </button>
 <div class="relative flex flex-col items-center">
-    <button id="btn-save" class="p-2 text-gray-400 hover:text-blue-400 transition-colors" 
-    onpointerdown="startToolHold('save')" onpointerup="endToolHold('save')"
-    onclick="saveChromaFile()" title="Save (Ctrl+S) / Hold for Save As">
-    <i class="fas fa-save"></i>
-    </button>
-    <!-- Header Dropdown for Save Options -->
-    <div id="save-popup" class="tool-popup hidden" style="left: 50%; transform: translateX(-50%); top: 100%; margin-left: 0; margin-top: 5px; width: 120px;">
-        <button onclick="saveChromaFile()" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F] flex items-center gap-2 text-[9px] font-bold uppercase w-full"><i class="fas fa-save"></i> Save</button>
-        <button onclick="saveAsChromaFile()" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F] flex items-center gap-2 text-[9px] font-bold uppercase w-full"><i class="fas fa-file-export"></i> Save As...</button>
-    </div>
+<button id="btn-save" class="p-2 text-gray-400 hover:text-blue-400 transition-colors"
+onpointerdown="startToolHold('save')" onpointerup="endToolHold('save')"
+onclick="saveChromaFile()" title="Save (Ctrl+S) / Hold for Save As">
+<i class="fas fa-save"></i>
+</button>
+<div id="save-popup" class="tool-popup hidden" style="left: 50%; transform: translateX(-50%); top: 100%; margin-left: 0; margin-top: 5px; width: 120px;">
+<button onclick="saveChromaFile()" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F] flex items-center gap-2 text-[9px] font-bold uppercase w-full"><i class="fas fa-save"></i> Save</button>
+<button onclick="saveAsChromaFile()" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F] flex items-center gap-2 text-[9px] font-bold uppercase w-full"><i class="fas fa-file-export"></i> Save As...</button>
+</div>
 </div>
 <button onclick="exportCanvas()" class="p-2 text-gray-400 hover:text-[#D38E3F] transition-colors" title="Export PNG">
 <i class="fas fa-file-export"></i>
@@ -172,25 +163,22 @@ CHROMA
 <i class="fas fa-redo-alt"></i>
 </button>
 </div>
-<!-- Global Selection Control (Appears whenever a selection is active) -->
 <div id="selectionGlobalUI" class="hidden items-center gap-3 border-l border-white/10 pl-6 h-8">
 <button onclick="clearSelection()" class="bg-[#D38E3F]/10 hover:bg-[#D38E3F]/20 text-[#D38E3F] border border-[#D38E3F]/30 px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all">
 Deselect
 </button>
 </div>
-<!-- Gradient Specific Options (Hidden by default) -->
 <div id="gradientOptions" class="hidden items-center gap-3 border-l border-white/10 pl-6 h-8">
 <div class="flex flex-col">
 <span class="text-[8px] uppercase text-gray-500 font-bold mb-0.5">Gradient Type</span>
-<select id="gradientTypeSelect" onchange="gradientType = this.value">
+<span id="gradientTypeSelect" onchange="gradientType = this.value">
 <option value="fg-bg">Foreground to Background</option>
 <option value="bg-fg">Background to Foreground</option>
 <option value="fg-trans">Foreground to Transparent</option>
 <option value="bg-trans">Background to Transparent</option>
-</select>
+</span>
 </div>
 </div>
-<!-- Lasso Specific Options (Hidden by default) -->
 <div id="lassoOptions" class="hidden items-center gap-3 border-l border-white/10 pl-6 h-8">
 <div class="flex flex-col w-28">
 <div class="flex justify-between text-[8px] uppercase text-gray-500 font-bold mb-0.5">
@@ -259,7 +247,6 @@ onpointerdown="startToolHold('bucket')" onpointerup="endToolHold('bucket')"
 onclick="setMode(lastBucketTool)" title="Paint Bucket / Gradient (G)">
 <i id="bucket-icon" class="fas fa-fill-drip"></i>
 </button>
-<!-- Hidden Switch Popup -->
 <div id="bucket-popup" class="tool-popup hidden">
 <button onclick="setMode('bucket')" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F]"><i class="fas fa-fill-drip"></i></button>
 <button onclick="setMode('gradient')" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F]"><i class="fas fa-stream"></i></button>
@@ -285,7 +272,6 @@ onclick="setMode(lastBucketTool)" title="Paint Bucket / Gradient (G)">
 <i class="fas fa-cog"></i>
 </button>
 <div class="w-8 h-px bg-black/10 dark:bg-white/10"></div>
-<!-- Overlapping Primary/Secondary Colors -->
 <div class="relative w-8 h-10">
 <div id="secondaryColorPreview" onclick="setActiveColorTarget('secondary')" class="absolute right-0 bottom-0 w-6 h-6 rounded-md border border-white/10 cursor-pointer shadow-lg z-10" style="background-color: #ffffff;" title="Secondary Color (Click to edit)"></div>
 <div id="activeColorPreview" onclick="setActiveColorTarget('primary')" class="absolute left-0 top-0 w-6 h-6 rounded-md border-2 border-white/20 shadow-xl z-20 color-preview-active" style="background-color: #D38E3F;" title="Primary Color (Click to edit)"></div>
@@ -296,29 +282,28 @@ onclick="setMode(lastBucketTool)" title="Paint Bucket / Gradient (G)">
 <canvas id="displayCanvas"></canvas>
 <canvas id="activeStrokeCanvas"></canvas>
 </div>
-<!-- Cursor Canvas moved to a HUD level inside the main viewport area -->
 <canvas id="cursorCanvas"></canvas>
 </main>
 <aside class="w-80 ui-panel flex flex-col border-l z-40">
 <div class="p-5 border-b">
 <div class="relative mb-4">
-    <div class="border border-white/10 rounded-xl hover:border-[#D38E3F]/40 transition-all">
-        <select id="rightPanelModeSelect" onchange="toggleRightPanelMode(this.value)" class="w-full bg-transparent border-none text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] cursor-pointer outline-none appearance-none py-3 px-4 pr-10">
-            <option value="adjustments" class="bg-zinc-900 text-white">Adjustments</option>
-            <option value="edit" class="bg-zinc-900 text-white">Edit</option>
-        </select>
-        <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 text-[8px]">
-            <i class="fas fa-chevron-down"></i>
-        </div>
-    </div>
+<div class="border border-white/10 rounded-xl hover:border-[#D38E3F]/40 transition-all">
+<select id="rightPanelModeSelect" onchange="toggleRightPanelMode(this.value)" class="w-full bg-transparent border-none text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] cursor-pointer outline-none appearance-none py-3 px-4 pr-10">
+<option value="adjustments" class="bg-zinc-900 text-white">Adjustments</option>
+<option value="edit" class="bg-zinc-900 text-white">Edit</option>
+</select>
+<div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 text-[8px]">
+<i class="fas fa-chevron-down"></i>
+</div>
+</div>
 </div>
 <div id="adjustmentsPanelContainer" class="grid grid-cols-2 gap-2">
 <button onclick="applyAdjustment('hsb')" class="bg-black/5 dark:bg-white/5 p-3 rounded-xl border border-transparent hover:border-[#D38E3F] text-[9px] font-bold uppercase transition-all">Hue/Sat/Bri</button>
 <button onclick="applyAdjustment('balance')" class="bg-black/5 dark:bg-white/5 p-3 rounded-xl border border-transparent hover:border-[#D38E3F] text-[9px] font-bold uppercase transition-all">Color Bal</button>
 </div>
 <div id="editPanelContainer" class="hidden grid grid-cols-2 gap-2">
-    <button onclick="toggleTransform()" class="bg-black/5 dark:bg-white/5 p-3 rounded-xl border border-transparent hover:border-[#D38E3F] text-[9px] font-bold uppercase transition-all">Transform</button>
-    <button onclick="createNewBrushFromLayer()" class="bg-black/5 dark:bg-white/5 p-3 rounded-xl border border-transparent hover:border-[#D38E3F] text-[9px] font-bold uppercase transition-all">New Brush</button>
+<button onclick="toggleTransform()" class="bg-black/5 dark:bg-white/5 p-3 rounded-xl border border-transparent hover:border-[#D38E3F] text-[9px] font-bold uppercase transition-all">Transform</button>
+<button onclick="createNewBrushFromLayer()" class="bg-black/5 dark:bg-white/5 p-3 rounded-xl border border-transparent hover:border-[#D38E3F] text-[9px] font-bold uppercase transition-all">New Brush</button>
 </div>
 </div>
 <div class="flex-1 flex flex-col min-h-0">
@@ -343,112 +328,106 @@ onclick="setMode(lastBucketTool)" title="Paint Bucket / Gradient (G)">
 <div id="layerList" class="px-3 space-y-1 overflow-y-auto flex-1 pb-4"></div>
 </div>
 </aside>
-
-<!-- FLOATING DRAGGABLE PANELS (Root Context) -->
 <div id="brushLibraryPanel" class="draggable-panel hidden right-[340px] top-[450px] w-64 ui-panel rounded-3xl p-5 shadow-2xl border flex flex-col">
-    <div class="panel-header flex justify-between items-center mb-4 text-[9px] font-bold uppercase text-[#D38E3F] tracking-wider">
-        <span>Brush Library</span>
-        <i class="fas fa-grip-lines"></i>
-    </div>
-    <div id="brushLibraryGrid" class="grid grid-cols-4 gap-2 max-h-[40vh] overflow-y-auto pr-1 flex-1"></div>
-    <div class="flex gap-2 mt-4 flex-shrink-0">
-        <button onclick="exportBrushes()" class="flex-1 py-1.5 bg-black/20 hover:bg-black/40 text-[8px] font-black uppercase rounded-lg border border-white/5 transition-all" title="Export whole library as one set">Export Library</button>
-        <button onclick="triggerBrushImport()" class="flex-1 py-1.5 bg-black/20 hover:bg-black/40 text-[8px] font-black uppercase rounded-lg border border-white/5 transition-all" title="Import .chromabrushes files">Import Brushes</button>
-        <input type="file" id="brushImportInput" class="hidden" accept=".chromabrushes" multiple onchange="importBrushes(event)">
-    </div>
-    <button onclick="toggleBrushLibrary()" class="mt-2 w-full py-2 bg-[#D38E3F] text-white text-[9px] font-bold uppercase rounded-lg">Close</button>
+<div class="panel-header flex justify-between items-center mb-4 text-[9px] font-bold uppercase text-[#D38E3F] tracking-wider">
+<span>Brush Library</span>
+<i class="fas fa-grip-lines"></i>
 </div>
-
+<div id="brushLibraryGrid" class="grid grid-cols-4 gap-2 max-h-[40vh] overflow-y-auto pr-1 flex-1"></div>
+<div class="flex gap-2 mt-4 flex-shrink-0">
+<button onclick="exportBrushes()" class="flex-1 py-1.5 bg-black/20 hover:bg-black/40 text-[8px] font-black uppercase rounded-lg border border-white/5 transition-all" title="Export whole library as one set">Export Library</button>
+<button onclick="triggerBrushImport()" class="flex-1 py-1.5 bg-black/20 hover:bg-black/40 text-[8px] font-black uppercase rounded-lg border border-white/5 transition-all" title="Import .chromabrushes files">Import Brushes</button>
+<input type="file" id="brushImportInput" class="hidden" accept=".chromabrushes" multiple onchange="importBrushes(event)">
+</div>
+<button onclick="toggleBrushLibrary()" class="mt-2 w-full py-2 bg-[#D38E3F] text-white text-[9px] font-bold uppercase rounded-lg">Close</button>
+</div>
 <div id="brushSettingsPanel" class="draggable-panel hidden right-[340px] top-[150px] w-72 ui-panel rounded-3xl p-5 shadow-2xl border">
-    <div class="panel-header flex justify-between items-center mb-4 text-[9px] font-bold uppercase text-[#D38E3F] tracking-wider">
-        <span>Brush Settings</span>
-        <i class="fas fa-grip-lines"></i>
-    </div>
-    <div class="w-full h-20 bg-black/20 rounded-xl mb-4 overflow-hidden flex items-center justify-center flex-shrink-0">
-        <canvas id="brushPreviewCanvas" width="260" height="80"></canvas>
-    </div>
-    <div class="space-y-4 pr-2">
-        <div>
-            <div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Spacing</span><span id="bs-spacing-val">1%</span></div>
-            <input type="range" id="bs-spacing" min="1" max="100" value="1" class="hsb-track">
-        </div>
-        <div>
-            <div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Hardness</span><span id="bs-hardness-val">100%</span></div>
-            <input type="range" id="bs-hardness" min="0" max="100" value="100" class="hsb-track">
-        </div>
-        <div>
-            <div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Flow</span><span id="bs-flow-val">100%</span></div>
-            <input type="range" id="bs-flow" min="1" max="100" value="100" class="hsb-track">
-        </div>
-        <div>
-            <div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Scatter</span><span id="bs-scatter-val">0%</span></div>
-            <input type="range" id="bs-scatter" min="0" max="200" value="0" class="hsb-track">
-        </div>
-        <div class="pt-2 border-t border-white/5">
-            <h4 class="text-[8px] uppercase font-black text-[#D38E3F] mb-3">Color Dynamics</h4>
-            <div class="space-y-3">
-                <div>
-                    <div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Hue Jitter</span><span id="bs-hueJitter-val">0%</span></div>
-                    <input type="range" id="bs-hueJitter" min="0" max="100" value="0" class="hsb-track">
-                </div>
-                <div>
-                    <div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Sat Jitter</span><span id="bs-satJitter-val">0%</span></div>
-                    <input type="range" id="bs-satJitter" min="0" max="100" value="0" class="hsb-track">
-                </div>
-                <div>
-                    <div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Value Jitter</span><span id="bs-briJitter-val">0%</span></div>
-                    <input type="range" id="bs-briJitter" min="0" max="100" value="0" class="hsb-track">
-                </div>
-                <div class="flex items-center justify-between pt-1">
-                    <span class="text-[8px] uppercase font-bold text-gray-500">Jitter Mode</span>
-                    <select id="bs-jitterMode" class="w-24 text-[8px]">
-                        <option value="tip">Per Tip</option>
-                        <option value="stroke">Per Stroke</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-    </div>
-    <button onclick="toggleBrushSettings()" class="mt-6 w-full py-2 bg-[#D38E3F] text-white text-[9px] font-bold uppercase rounded-lg flex-shrink-0">Close</button>
+<div class="panel-header flex justify-between items-center mb-4 text-[9px] font-bold uppercase text-[#D38E3F] tracking-wider">
+<span>Brush Settings</span>
+<i class="fas fa-grip-lines"></i>
 </div>
-
+<div class="w-full h-20 bg-black/20 rounded-xl mb-4 overflow-hidden flex items-center justify-center flex-shrink-0">
+<canvas id="brushPreviewCanvas" width="260" height="80"></canvas>
+</div>
+<div class="space-y-4 pr-2">
+<div>
+<div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Spacing</span><span id="bs-spacing-val">1%</span></div>
+<input type="range" id="bs-spacing" min="1" max="100" value="1" class="hsb-track">
+</div>
+<div>
+<div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Hardness</span><span id="bs-hardness-val">100%</span></div>
+<input type="range" id="bs-hardness" min="0" max="100" value="100" class="hsb-track">
+</div>
+<div>
+<div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Flow</span><span id="bs-flow-val">100%</span></div>
+<input type="range" id="bs-flow" min="1" max="100" value="100" class="hsb-track">
+</div>
+<div>
+<div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Scatter</span><span id="bs-scatter-val">0%</span></div>
+<input type="range" id="bs-scatter" min="0" max="200" value="0" class="hsb-track">
+</div>
+<div class="pt-2 border-t border-white/5">
+<h4 class="text-[8px] uppercase font-black text-[#D38E3F] mb-3">Color Dynamics</h4>
+<div class="space-y-3">
+<div>
+<div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Hue Jitter</span><span id="bs-hueJitter-val">0%</span></div>
+<input type="range" id="bs-hueJitter" min="0" max="100" value="0" class="hsb-track">
+</div>
+<div>
+<div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Sat Jitter</span><span id="bs-satJitter-val">0%</span></div>
+<input type="range" id="bs-satJitter" min="0" max="100" value="0" class="hsb-track">
+</div>
+<div>
+<div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Value Jitter</span><span id="bs-briJitter-val">0%</span></div>
+<input type="range" id="bs-briJitter" min="0" max="100" value="0" class="hsb-track">
+</div>
+<div class="flex items-center justify-between pt-1">
+<span class="text-[8px] uppercase font-bold text-gray-500">Jitter Mode</span>
+<select id="bs-jitterMode" class="w-24 text-[8px]">
+<option value="tip">Per Tip</option>
+<option value="stroke">Per Stroke</option>
+</select>
+</div>
+</div>
+</div>
+</div>
+<button onclick="toggleBrushSettings()" class="mt-6 w-full py-2 bg-[#D38E3F] text-white text-[9px] font-bold uppercase rounded-lg flex-shrink-0">Close</button>
+</div>
 <div id="colorPanel" class="draggable-panel left-[80px] bottom-[100px] w-64 ui-panel rounded-3xl p-5 shadow-2xl border">
-    <div class="panel-header flex justify-between items-center mb-3 text-[9px] font-bold uppercase text-gray-500 tracking-wider">
-        <span id="hexDisplay">#D38E3F</span>
-        <i class="fas fa-grip-lines"></i>
-    </div>
-    <div id="hsvBox" class="relative w-full aspect-square rounded-xl mb-4 cursor-crosshair overflow-hidden flex-shrink-0">
-        <div id="hsvPointer" class="absolute w-3 h-3 border-2 border-white rounded-full -translate-x-1/2 -translate-y-1/2 pointer-events-none shadow-md"></div>
-    </div>
-    <input type="range" id="hueBar" min="0" max="360" value="32" class="w-full mb-4 flex-shrink-0">
-    <div class="space-y-2 mt-2">
-        <div class="flex flex-col">
-            <div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Hue</span><span id="hLabel">32</span></div>
-            <input type="range" id="slider-h" min="0" max="360" value="32" class="hsb-track">
-        </div>
-        <div class="flex flex-col">
-            <div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Saturation</span><span id="sLabel">70%</span></div>
-            <input type="range" id="slider-s" min="0" max="100" value="70" class="hsb-track">
-        </div>
-        <div class="flex flex-col">
-            <div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Brightness</span><span id="vLabel">83%</span></div>
-            <input type="range" id="slider-v" min="0" max="100" value="83" class="hsb-track">
-        </div>
-    </div>
+<div class="panel-header flex justify-between items-center mb-3 text-[9px] font-bold uppercase text-gray-500 tracking-wider">
+<span id="hexDisplay">#D38E3F</span>
+<i class="fas fa-grip-lines"></i>
 </div>
-
+<div id="hsvBox" class="relative w-full aspect-square rounded-xl mb-4 cursor-crosshair overflow-hidden flex-shrink-0">
+<div id="hsvPointer" class="absolute w-3 h-3 border-2 border-white rounded-full -translate-x-1/2 -translate-y-1/2 pointer-events-none shadow-md"></div>
+</div>
+<input type="range" id="hueBar" min="0" max="360" value="32" class="w-full mb-4 flex-shrink-0">
+<div class="space-y-2 mt-2">
+<div class="flex flex-col">
+<div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Hue</span><span id="hLabel">32</span></div>
+<input type="range" id="slider-h" min="0" max="360" value="32" class="hsb-track">
+</div>
+<div class="flex flex-col">
+<div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Saturation</span><span id="sLabel">70%</span></div>
+<input type="range" id="slider-s" min="0" max="100" value="70" class="hsb-track">
+</div>
+<div class="flex flex-col">
+<div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Brightness</span><span id="vLabel">83%</span></div>
+<input type="range" id="slider-v" min="0" max="100" value="83" class="hsb-track">
+</div>
+</div>
+</div>
 <div id="adjPanel" class="draggable-panel hidden right-[340px] top-[100px] w-72 ui-panel rounded-3xl p-6 shadow-2xl border">
-    <div class="panel-header flex justify-between items-center mb-6 text-[10px] font-black text-[#D38E3F] uppercase tracking-widest">
-        <span id="adjTitle">Adjust</span>
-        <i class="fas fa-grip-lines"></i>
-    </div>
-    <div id="adjControls" class="space-y-6"></div>
-    <div class="flex gap-4 mt-8">
-        <button onclick="cancelAdj()" class="flex-1 py-3 text-[9px] font-bold uppercase text-gray-500 hover:text-[#D38E3F] transition-colors">Cancel</button>
-        <button onclick="confirmAdj()" class="flex-1 py-3 bg-[#D38E3F] rounded-xl text-[9px] font-bold uppercase text-white">Apply</button>
-    </div>
+<div class="panel-header flex justify-between items-center mb-6 text-[10px] font-black text-[#D38E3F] uppercase tracking-widest">
+<span id="adjTitle">Adjust</span>
+<i class="fas fa-grip-lines"></i>
 </div>
-
+<div id="adjControls" class="space-y-6"></div>
+<div class="flex gap-4 mt-8">
+<button onclick="cancelAdj()" class="flex-1 py-3 text-[9px] font-bold uppercase text-gray-500 hover:text-[#D38E3F] transition-colors">Cancel</button>
+<button onclick="confirmAdj()" class="flex-1 py-3 bg-[#D38E3F] rounded-xl text-[9px] font-bold uppercase text-white">Apply</button>
+</div>
+</div>
 <script>
 const viewport = document.getElementById('viewport');
 const stack = document.getElementById('canvasStack');
@@ -462,7 +441,6 @@ const activeStrokeCanvas = document.getElementById('activeStrokeCanvas');
 const activeStrokeCtx = activeStrokeCanvas.getContext('2d');
 const cursorCanvas = document.getElementById('cursorCanvas');
 const curCtx = cursorCanvas.getContext('2d');
-// Selection mask offscreen canvas for feathering support
 const maskCanvas = document.createElement('canvas');
 maskCanvas.width = maskCanvas.height = 1600;
 const maskCtx = maskCanvas.getContext('2d');
@@ -496,22 +474,19 @@ let activeColorTarget = 'primary';
 let mode = 'brush';
 let lastBucketTool = 'bucket';
 let gradientType = 'fg-bg';
-let brushTip = 'round'; // Default
+let brushTip = 'round';
 let brushLibrary = [
-    { id: 'round', type: 'round', name: 'Round' },
-    { id: 'flat', type: 'flat', name: 'Flat' }
+{ id: 'round', type: 'round', name: 'Round' },
+{ id: 'flat', type: 'flat', name: 'Flat' }
 ];
-// Performance optimization for custom brushes: Pre-tinted canvas
 let customBrushTintedCanvas = null;
-
 let lastX = 0, lastY = 0;
 let lastInputX = 0, lastInputY = 0;
-// Smoothing logic variables
 let lastPressure = 1.0;
-let strokeHistory = []; // Used for Bezier path smoothing
+let strokeHistory = [];
 let isAltDown = false;
 let isSpaceDown = false;
-let isShiftDown = false; // Tracker for straight lines
+let isShiftDown = false;
 let isBacktickDown = false;
 let isPanning = false;
 let panMouseX = 0, panMouseY = 0;
@@ -533,19 +508,15 @@ let activeSelectionPoints = [];
 let lassoFeather = 0;
 let selectionDashOffset = 0;
 let lastMouseData = { x: 0, y: 0, rawX: 0, rawY: 0 };
-let currentFileHandle = null; // Stores file handle for Overwrite Save
-let highestZ = 6000; // Manager for popups
-
-// Lock tracker for straight line
+let currentFileHandle = null;
+let highestZ = 6000;
 let lockAxis = null;
 let strokeStartPos = null;
-
 const undoStack = [];
 const redoStack = [];
 const INTERNAL_RES = 1600;
-const BASE_DISPLAY_SIZE = 800; // Static size to avoid transform box drift
+const BASE_DISPLAY_SIZE = 800;
 let draggedIdx = null;
-// Updated Defaults
 const brushSettings = {
 spacing: 0.01,
 hardness: 1.0,
@@ -560,7 +531,6 @@ strokeSatOffset: 0,
 strokeBriOffset: 0,
 lastDabX: 0, lastDabY: 0, distSinceLastDab: 0
 };
-
 function init() {
 displayCanvas.width = activeStrokeCanvas.width = INTERNAL_RES;
 displayCanvas.height = activeStrokeCanvas.height = INTERNAL_RES;
@@ -576,7 +546,6 @@ stack.addEventListener('pointerdown', start);
 window.addEventListener('pointermove', move);
 window.addEventListener('pointerup', stop);
 window.addEventListener('pointercancel', stop);
-// Always listen for mouse in viewport to ensure UI handles are visible
 viewport.addEventListener('mouseenter', () => { cursorCanvas.style.opacity = 1; });
 viewport.addEventListener('mouseleave', () => {
 if (!isPainting && !isTransforming && activeSelectionPoints.length === 0) {
@@ -625,11 +594,10 @@ window.addEventListener('pointermove', onGlobalReorderMove);
 window.addEventListener('pointerup', onGlobalReorderUp);
 function animateMarchingAnts() {
 selectionDashOffset = (selectionDashOffset + 0.4) % 16;
-// Redraw overlay if any active tool/state requires it
-const needsRedraw = activeSelectionPoints.length > 0 || 
-isPainting || 
-isTransforming || 
-mode === 'lasso' || 
+const needsRedraw = activeSelectionPoints.length > 0 ||
+isPainting ||
+isTransforming ||
+mode === 'lasso' ||
 isAltDown;
 if (needsRedraw) {
 updateCursor(lastMouseData);
@@ -639,18 +607,15 @@ requestAnimationFrame(animateMarchingAnts);
 requestAnimationFrame(animateMarchingAnts);
 updateBrushPreview();
 }
-
 function bringToFront(el) {
-    el.style.zIndex = ++highestZ;
+el.style.zIndex = ++highestZ;
 }
-
 function toggleRightPanelMode(mode) {
-    document.getElementById('adjustmentsPanelContainer').classList.toggle('hidden', mode !== 'adjustments');
-    document.getElementById('adjustmentsPanelContainer').classList.toggle('grid', mode === 'adjustments');
-    document.getElementById('editPanelContainer').classList.toggle('hidden', mode !== 'edit');
-    document.getElementById('editPanelContainer').classList.toggle('grid', mode === 'edit');
+document.getElementById('adjustmentsPanelContainer').classList.toggle('hidden', mode !== 'adjustments');
+document.getElementById('adjustmentsPanelContainer').classList.toggle('grid', mode === 'adjustments');
+document.getElementById('editPanelContainer').classList.toggle('hidden', mode !== 'edit');
+document.getElementById('editPanelContainer').classList.toggle('grid', mode === 'edit');
 }
-
 function updateBrushPreview() {
 const pc = document.getElementById('brushPreviewCanvas');
 if (!pc) return;
@@ -689,19 +654,18 @@ previewDist = 0;
 lx = x; ly = y;
 }
 }
-
 function triggerChromaImport() {
 if ('showOpenFilePicker' in window) {
-    window.showOpenFilePicker({
-        types: [{ description: 'Chroma Project', accept: { 'application/json': ['.chroma'] } }]
-    }).then(([handle]) => {
-        currentFileHandle = handle;
-        return handle.getFile();
-    }).then(file => file.text())
-    .then(text => processChromaData(text))
-    .catch(e => console.log("Import cancelled"));
+window.showOpenFilePicker({
+types: [{ description: 'Chroma Project', accept: { 'application/json': ['.chroma'] } }]
+}).then(([handle]) => {
+currentFileHandle = handle;
+return handle.getFile();
+}).then(file => file.text())
+.then(text => processChromaData(text))
+.catch(e => console.log("Import cancelled"));
 } else {
-    document.getElementById('chromaInput').click();
+document.getElementById('chromaInput').click();
 }
 }
 async function processChromaData(text) {
@@ -746,8 +710,8 @@ const file = e.target.files[0];
 if (!file) return;
 const reader = new FileReader();
 reader.onload = async (event) => {
-    processChromaData(event.target.result);
-    currentFileHandle = null;
+processChromaData(event.target.result);
+currentFileHandle = null;
 };
 reader.readAsText(file);
 e.target.value = '';
@@ -772,40 +736,40 @@ pixelData: l.canvas.toDataURL('image/png')
 }
 async function saveChromaFile() {
 if (currentFileHandle) {
-    try {
-        const project = generateChromaProjectObject();
-        const writable = await currentFileHandle.createWritable();
-        await writable.write(JSON.stringify(project));
-        await writable.close();
-        showToast("Project Saved Successfully");
-        return;
-    } catch (e) { console.error("Save failed", e); }
+try {
+const project = generateChromaProjectObject();
+const writable = await currentFileHandle.createWritable();
+await writable.write(JSON.stringify(project));
+await writable.close();
+showToast("Project Saved Successfully");
+return;
+} catch (e) { console.error("Save failed", e); }
 }
 saveAsChromaFile();
 }
 async function saveAsChromaFile() {
 const project = generateChromaProjectObject();
 if ('showSaveFilePicker' in window) {
-    try {
-        const handle = await window.showSaveFilePicker({
-            suggestedName: 'project.chroma',
-            types: [{ description: 'Chroma Project', accept: { 'application/json': ['.chroma'] } }]
-        });
-        currentFileHandle = handle;
-        const writable = await handle.createWritable();
-        await writable.write(JSON.stringify(project));
-        await writable.close();
-        showToast("Project Saved As New File");
-    } catch (e) { console.log("Save cancelled"); }
+try {
+const handle = await window.showSaveFilePicker({
+suggestedName: 'project.chroma',
+types: [{ description: 'Chroma Project', accept: { 'application/json': ['.chroma'] } }]
+});
+currentFileHandle = handle;
+const writable = await handle.createWritable();
+await writable.write(JSON.stringify(project));
+await writable.close();
+showToast("Project Saved As New File");
+} catch (e) { console.log("Save cancelled"); }
 } else {
-    const blob = new Blob([JSON.stringify(project)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'project.chroma';
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast("Project Downloaded");
+const blob = new Blob([JSON.stringify(project)], { type: 'application/json' });
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url;
+a.download = 'project.chroma';
+a.click();
+URL.revokeObjectURL(url);
+showToast("Project Downloaded");
 }
 }
 function showToast(msg) {
@@ -855,210 +819,184 @@ function toggleBrushSettings() {
 const panel = document.getElementById('brushSettingsPanel');
 panel.classList.toggle('hidden');
 if(!panel.classList.contains('hidden')) {
-    bringToFront(panel);
-    updateBrushPreview();
+bringToFront(panel);
+updateBrushPreview();
 }
 document.getElementById('btn-brush-settings').classList.toggle('active', !panel.classList.contains('hidden'));
 }
-
 function toggleBrushLibrary() {
-    const panel = document.getElementById('brushLibraryPanel');
-    panel.classList.toggle('hidden');
-    if(!panel.classList.contains('hidden')) bringToFront(panel);
-    document.getElementById('btn-brush-library').classList.toggle('active', !panel.classList.contains('hidden'));
+const panel = document.getElementById('brushLibraryPanel');
+panel.classList.toggle('hidden');
+if(!panel.classList.contains('hidden')) bringToFront(panel);
+document.getElementById('btn-brush-library').classList.toggle('active', !panel.classList.contains('hidden'));
 }
-
 function renderBrushLibrary() {
-    const grid = document.getElementById('brushLibraryGrid');
-    grid.innerHTML = '';
-    brushLibrary.forEach(brush => {
-        const item = document.createElement('div');
-        const isActive = brushTip === brush.id;
-        item.className = `brush-grid-item ${isActive ? 'active' : ''}`;
-        item.title = brush.name;
-        
-        if (brush.type === 'round') {
-            item.innerHTML = `<div class="w-6 h-6 rounded-full bg-white/50 border border-white/20"></div>`;
-        } else if (brush.type === 'flat') {
-            item.innerHTML = `<div class="w-6 h-2 bg-white/50 border border-white/20"></div>`;
-        } else if (brush.type === 'custom') {
-            const img = new Image();
-            img.src = brush.mask;
-            img.className = "w-8 h-8 object-contain opacity-70";
-            item.appendChild(img);
-            
-            const del = document.createElement('button');
-            del.className = "delete-brush";
-            del.innerHTML = '<i class="fas fa-times"></i>';
-            del.onclick = (e) => {
-                e.stopPropagation();
-                brushLibrary = brushLibrary.filter(b => b.id !== brush.id);
-                if (brushTip === brush.id) brushTip = 'round';
-                renderBrushLibrary();
-                updateBrushPreview();
-            };
-            item.appendChild(del);
-        }
-        
-        item.onclick = () => {
-            brushTip = brush.id;
-            updateBrushTint(); // Optimization: pre-tint
-            renderBrushLibrary();
-            updateBrushPreview();
-        };
-        grid.appendChild(item);
-    });
+const grid = document.getElementById('brushLibraryGrid');
+grid.innerHTML = '';
+brushLibrary.forEach(brush => {
+const item = document.createElement('div');
+const isActive = brushTip === brush.id;
+item.className = `brush-grid-item ${isActive ? 'active' : ''}`;
+item.title = brush.name;
+if (brush.type === 'round') {
+item.innerHTML = `<div class="w-6 h-6 rounded-full bg-white/50 border border-white/20"></div>`;
+} else if (brush.type === 'flat') {
+item.innerHTML = `<div class="w-6 h-2 bg-white/50 border border-white/20"></div>`;
+} else if (brush.type === 'custom') {
+const img = new Image();
+img.src = brush.mask;
+img.className = "w-8 h-8 object-contain opacity-70";
+item.appendChild(img);
+const del = document.createElement('button');
+del.className = "delete-brush";
+del.innerHTML = '<i class="fas fa-times"></i>';
+del.onclick = (e) => {
+e.stopPropagation();
+brushLibrary = brushLibrary.filter(b => b.id !== brush.id);
+if (brushTip === brush.id) brushTip = 'round';
+renderBrushLibrary();
+updateBrushPreview();
+};
+item.appendChild(del);
 }
-
+item.onclick = () => {
+brushTip = brush.id;
+updateBrushTint();
+renderBrushLibrary();
+updateBrushPreview();
+};
+grid.appendChild(item);
+});
+}
 function exportBrushes() {
-    const data = JSON.stringify(brushLibrary.map(b => ({
-        id: b.id, type: b.type, name: b.name, mask: b.mask
-    })));
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'chroma_brushes.chromabrushes';
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast("Brushes Exported");
+const data = JSON.stringify(brushLibrary.map(b => ({
+id: b.id, type: b.type, name: b.name, mask: b.mask
+})));
+const blob = new Blob([data], { type: 'application/json' });
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url;
+a.download = 'chroma_brushes.chromabrushes';
+a.click();
+URL.revokeObjectURL(url);
+showToast("Brushes Exported");
 }
-
 function triggerBrushImport() {
-    document.getElementById('brushImportInput').click();
+document.getElementById('brushImportInput').click();
 }
-
 async function importBrushes(e) {
-    const files = Array.from(e.target.files);
-    if (files.length === 0) return;
-    
-    let totalImported = 0;
-    for (const file of files) {
-        const text = await file.text();
-        try {
-            const imported = JSON.parse(text);
-            const brushes = Array.isArray(imported) ? imported : [imported];
-            for (const brushData of brushes) {
-                if (brushData.id === 'round' || brushData.id === 'flat') continue;
-                
-                await new Promise(resolve => {
-                    const brushCanvas = document.createElement('canvas');
-                    brushCanvas.width = brushCanvas.height = 256;
-                    const bctx = brushCanvas.getContext('2d');
-                    const img = new Image();
-                    img.onload = () => {
-                        bctx.drawImage(img, 0, 0);
-                        brushLibrary.push({ ...brushData, canvas: brushCanvas });
-                        totalImported++;
-                        resolve();
-                    };
-                    img.src = brushData.mask;
-                });
-            }
-        } catch (err) { console.error("Parse error for", file.name); }
-    }
-    renderBrushLibrary();
-    showToast(`Imported ${totalImported} brushes`);
-    e.target.value = '';
+const files = Array.from(e.target.files);
+if (files.length === 0) return;
+let totalImported = 0;
+for (const file of files) {
+const text = await file.text();
+try {
+const imported = JSON.parse(text);
+const brushes = Array.isArray(imported) ? imported : [imported];
+for (const brushData of brushes) {
+if (brushData.id === 'round' || brushData.id === 'flat') continue;
+await new Promise(resolve => {
+const brushCanvas = document.createElement('canvas');
+brushCanvas.width = brushCanvas.height = 256;
+const bctx = brushCanvas.getContext('2d');
+const img = new Image();
+img.onload = () => {
+bctx.drawImage(img, 0, 0);
+brushLibrary.push({ ...brushData, canvas: brushCanvas });
+totalImported++;
+resolve();
+};
+img.src = brushData.mask;
+});
 }
-
-// Pre-tints custom brush for performance
+} catch (err) { console.error("Parse error for", file.name); }
+}
+renderBrushLibrary();
+showToast(`Imported ${totalImported} brushes`);
+e.target.value = '';
+}
 function updateBrushTint() {
-    const brush = brushLibrary.find(b => b.id === brushTip);
-    if (!brush || brush.type !== 'custom') {
-        customBrushTintedCanvas = null;
-        return;
-    }
-    const colorStr = (mode === 'eraser' || isBacktickDown) ? 'rgb(255,255,255)' : color;
-    const off = document.createElement('canvas');
-    off.width = off.height = 256;
-    const octx = off.getContext('2d');
-    octx.fillStyle = colorStr;
-    octx.fillRect(0, 0, 256, 256);
-    octx.globalCompositeOperation = 'destination-in';
-    octx.drawImage(brush.canvas, 0, 0, 256, 256);
-    customBrushTintedCanvas = off;
+const brush = brushLibrary.find(b => b.id === brushTip);
+if (!brush || brush.type !== 'custom') {
+customBrushTintedCanvas = null;
+return;
 }
-
+const colorStr = (mode === 'eraser' || isBacktickDown) ? 'rgb(255,255,255)' : color;
+const off = document.createElement('canvas');
+off.width = off.height = 256;
+const octx = off.getContext('2d');
+octx.fillStyle = colorStr;
+octx.fillRect(0, 0, 256, 256);
+octx.globalCompositeOperation = 'destination-in';
+octx.drawImage(brush.canvas, 0, 0, 256, 256);
+customBrushTintedCanvas = off;
+}
 function createNewBrushFromLayer() {
-    const layer = layers[activeIdx];
-    if (!layer) return;
-    
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = INTERNAL_RES;
-    tempCanvas.height = INTERNAL_RES;
-    const tctx = tempCanvas.getContext('2d');
-    tctx.drawImage(layer.canvas, 0, 0);
-    
-    const imgData = tctx.getImageData(0, 0, INTERNAL_RES, INTERNAL_RES);
-    let minX = INTERNAL_RES, minY = INTERNAL_RES, maxX = 0, maxY = 0;
-    let found = false;
-    let anyTransparency = false;
-
-    for (let y = 0; y < INTERNAL_RES; y++) {
-        for (let x = 0; x < INTERNAL_RES; x++) {
-            const alpha = imgData.data[(y * INTERNAL_RES + x) * 4 + 3];
-            if (alpha < 255) anyTransparency = true;
-            if (alpha > 0) {
-                if (x < minX) minX = x;
-                if (x > maxX) maxX = x;
-                if (y < minY) minY = y;
-                if (y > maxY) maxY = y;
-                found = true;
-            }
-        }
-    }
-    
-    if (!found) {
-        showToast("Layer is empty. Paint something to make a brush!");
-        return;
-    }
-    
-    const w = maxX - minX + 1;
-    const h = maxY - minY + 1;
-    const size = Math.max(w, h);
-    const brushCanvas = document.createElement('canvas');
-    brushCanvas.width = brushCanvas.height = 256;
-    const bctx = brushCanvas.getContext('2d');
-    
-    const scale = 256 / size;
-    bctx.drawImage(layer.canvas, minX, minY, w, h, (256 - w * scale) / 2, (256 - h * scale) / 2, w * scale, h * scale);
-    
-    // Mask logic: use alpha if available, otherwise inverse brightness
-    const bData = bctx.getImageData(0, 0, 256, 256);
-    for (let i = 0; i < bData.data.length; i += 4) {
-        const r = bData.data[i], g = bData.data[i+1], b = bData.data[i+2];
-        const alpha = bData.data[i+3];
-        const brightness = (r + g + b) / 3;
-        
-        bData.data[i] = 255;
-        bData.data[i+1] = 255;
-        bData.data[i+2] = 255;
-        
-        if (anyTransparency) {
-            bData.data[i+3] = alpha;
-        } else {
-            bData.data[i+3] = 255 - brightness;
-        }
-    }
-    bctx.putImageData(bData, 0, 0);
-    
-    const brushId = 'custom_' + Date.now();
-    brushLibrary.push({
-        id: brushId,
-        type: 'custom',
-        name: 'Custom Brush',
-        mask: brushCanvas.toDataURL(),
-        canvas: brushCanvas
-    });
-    
-    brushTip = brushId;
-    updateBrushTint();
-    renderBrushLibrary();
-    updateBrushPreview();
-    showToast("New Brush Created!");
+const layer = layers[activeIdx];
+if (!layer) return;
+const tempCanvas = document.createElement('canvas');
+tempCanvas.width = INTERNAL_RES;
+tempCanvas.height = INTERNAL_RES;
+const tctx = tempCanvas.getContext('2d');
+tctx.drawImage(layer.canvas, 0, 0);
+const imgData = tctx.getImageData(0, 0, INTERNAL_RES, INTERNAL_RES);
+let minX = INTERNAL_RES, minY = INTERNAL_RES, maxX = 0, maxY = 0;
+let found = false;
+let anyTransparency = false;
+for (let y = 0; y < INTERNAL_RES; y++) {
+for (let x = 0; x < INTERNAL_RES; x++) {
+const alpha = imgData.data[(y * INTERNAL_RES + x) * 4 + 3];
+if (alpha < 255) anyTransparency = true;
+if (alpha > 0) {
+if (x < minX) minX = x;
+if (x > maxX) maxX = x;
+if (y < minY) minY = y;
+if (y > maxY) maxY = y;
+found = true;
 }
-
+}
+}
+if (!found) {
+showToast("Layer is empty. Paint something to make a brush!");
+return;
+}
+const w = maxX - minX + 1;
+const h = maxY - minY + 1;
+const size = Math.max(w, h);
+const brushCanvas = document.createElement('canvas');
+brushCanvas.width = brushCanvas.height = 256;
+const bctx = brushCanvas.getContext('2d');
+const scale = 256 / size;
+bctx.drawImage(layer.canvas, minX, minY, w, h, (256 - w * scale) / 2, (256 - h * scale) / 2, w * scale, h * scale);
+const bData = bctx.getImageData(0, 0, 256, 256);
+for (let i = 0; i < bData.data.length; i += 4) {
+const r = bData.data[i], g = bData.data[i+1], b = bData.data[i+2];
+const alpha = bData.data[i+3];
+const brightness = (r + g + b) / 3;
+bData.data[i] = 255;
+bData.data[i+1] = 255;
+bData.data[i+2] = 255;
+if (anyTransparency) {
+bData.data[i+3] = alpha;
+} else {
+bData.data[i+3] = 255 - brightness;
+}
+}
+bctx.putImageData(bData, 0, 0);
+const brushId = 'custom_' + Date.now();
+brushLibrary.push({
+id: brushId,
+type: 'custom',
+name: 'Custom Brush',
+mask: brushCanvas.toDataURL(),
+canvas: brushCanvas
+});
+brushTip = brushId;
+updateBrushTint();
+renderBrushLibrary();
+updateBrushPreview();
+showToast("New Brush Created!");
+}
 function toggleTheme() {
 const isLight = document.body.classList.toggle('light-mode');
 const toggleBtn = document.getElementById('themeToggle').querySelector('i');
@@ -1163,7 +1101,6 @@ return;
 }
 if (e.key === 'ArrowRight') { e.preventDefault(); brushRotation += e.shiftKey ? 15 : 1; updateBrushPreview(); }
 if (e.key === 'ArrowLeft') { e.preventDefault(); brushRotation -= e.shiftKey ? 15 : 1; updateBrushPreview(); }
-
 if (e.ctrlKey && e.shiftKey && keyLow === 'z') { e.preventDefault(); redo(); return; }
 if (e.ctrlKey && keyLow === 'z') { e.preventDefault(); undo(); return; }
 if (e.ctrlKey && keyLow === 'n') { e.preventDefault(); addLayer(); }
@@ -1198,42 +1135,33 @@ lassoFeather = parseInt(val);
 document.getElementById('lassoFeatherVal').innerText = val + 'px';
 if (activeSelectionPoints.length > 0) generateMask();
 }
-
 function setupDraggable(el) {
 let nx = 0, ny = 0;
 el.addEventListener('pointerdown', (e) => {
-    // Exclude interactive elements from triggering a drag
-    if (['BUTTON', 'INPUT', 'SELECT', 'CANVAS'].includes(e.target.tagName) || e.target.closest('.brush-grid-item') || e.target.closest('#hsvBox')) return;
-    
-    bringToFront(el);
-    el.setPointerCapture(e.pointerId);
-    nx = e.clientX; ny = e.clientY;
-    
-    const onPointerMove = (me) => {
-        const dx = nx - me.clientX; const dy = ny - me.clientY;
-        nx = me.clientX; ny = me.clientY;
-        el.style.top = (el.offsetTop - dy) + "px";
-        el.style.left = (el.offsetLeft - dx) + "px";
-        // Override any Tailwind positioning
-        el.style.bottom = 'auto'; el.style.right = 'auto';
-    };
-    
-    const onPointerUp = () => {
-        el.removeEventListener('pointermove', onPointerMove);
-        el.removeEventListener('pointerup', onPointerUp);
-    };
-    
-    el.addEventListener('pointermove', onPointerMove);
-    el.addEventListener('pointerup', onPointerUp);
+if (['BUTTON', 'INPUT', 'SELECT', 'CANVAS'].includes(e.target.tagName) || e.target.closest('.brush-grid-item') || e.target.closest('#hsvBox')) return;
+bringToFront(el);
+el.setPointerCapture(e.pointerId);
+nx = e.clientX; ny = e.clientY;
+const onPointerMove = (me) => {
+const dx = nx - me.clientX; const dy = ny - me.clientY;
+nx = me.clientX; ny = me.clientY;
+el.style.top = (el.offsetTop - dy) + "px";
+el.style.left = (el.offsetLeft - dx) + "px";
+el.style.bottom = 'auto'; el.style.right = 'auto';
+};
+const onPointerUp = () => {
+el.removeEventListener('pointermove', onPointerMove);
+el.removeEventListener('pointerup', onPointerUp);
+};
+el.addEventListener('pointermove', onPointerMove);
+el.addEventListener('pointerup', onPointerUp);
 });
-// Also bring to front on simple clicks on inputs
 el.addEventListener('pointerdown', (e) => {
-    if (['BUTTON', 'INPUT', 'SELECT', 'CANVAS'].includes(e.target.tagName) || e.target.closest('.brush-grid-item') || e.target.closest('#hsvBox')) {
-        bringToFront(el);
-    }
+if (['BUTTON', 'INPUT', 'SELECT', 'CANVAS'].includes(e.target.tagName) || e.target.closest('.brush-grid-item') || e.target.closest('#hsvBox')) {
+bringToFront(el);
+}
 });
 }
-
 function toggleTransform() {
 if (!isTransforming) {
 const layer = layers[activeIdx]; if (!layer) return;
@@ -1267,7 +1195,6 @@ const canvas = document.createElement('canvas'); canvas.width = canvas.height = 
 const ctx = canvas.getContext('2d', { willReadFrequently: true });
 if (isWhite) { ctx.fillStyle = 'white'; ctx.fillRect(0, 0, INTERNAL_RES, INTERNAL_RES); }
 const layer = { id: Date.now() + Math.random(), name: name || `Layer ${layers.length + 1}`, canvas, ctx, visible: true, alphaLocked: false, clippingMask: false, blendMode: 'source-over', opacity: 1.0 };
-// Insert on top of active layer
 layers.splice(activeIdx, 0, layer); refreshUI(); renderStack();
 }
 function duplicateLayer() {
@@ -1295,7 +1222,7 @@ bottom.ctx.drawImage(temp, 0, 0); bottom.ctx.restore();
 layers.splice(activeIdx, 1); activeIdx = Math.min(activeIdx, layers.length - 1); refreshUI(); renderStack();
 }
 function deleteLayer(i, e) {
-e.stopPropagation(); 
+e.stopPropagation();
 saveUndo(); layers.splice(i, 1);
 if (layers.length === 0) addLayer('Layer 1');
 if (activeIdx >= layers.length) activeIdx = layers.length - 1;
@@ -1411,7 +1338,7 @@ const previewBuffer = document.createElement('canvas');
 previewBuffer.width = previewBuffer.height = INTERNAL_RES;
 const pctx = previewBuffer.getContext('2d');
 pctx.drawImage(activeStrokeCanvas, 0, 0);
-applySelectionMask(pctx); // Restricted to lasso area for preview
+applySelectionMask(pctx);
 if (mode === 'eraser' || isBacktickDown) tctx.globalCompositeOperation = 'destination-out';
 else if (layer.alphaLocked) tctx.globalCompositeOperation = 'source-atop';
 else tctx.globalCompositeOperation = 'source-over';
@@ -1429,7 +1356,7 @@ const previewBuffer = document.createElement('canvas');
 previewBuffer.width = previewBuffer.height = INTERNAL_RES;
 const pctx = previewBuffer.getContext('2d');
 pctx.drawImage(activeStrokeCanvas, 0, 0);
-applySelectionMask(pctx); // Restricted to lasso area for preview
+applySelectionMask(pctx);
 if (mode === 'eraser' || isBacktickDown) bctx.globalCompositeOperation = 'destination-out';
 else if (layer.alphaLocked) bctx.globalCompositeOperation = 'source-atop';
 else bctx.globalCompositeOperation = 'source-over';
@@ -1456,11 +1383,8 @@ lastInputX = pos.x; lastInputY = pos.y;
 strokeHistory = [{x: pos.x, y: pos.y, p: (e.pressure !== undefined && e.pressure > 0) ? e.pressure : 1.0}];
 lastPressure = (e.pressure !== undefined && e.pressure > 0) ? e.pressure : 1.0;
 brushSettings.lastDabX = pos.x; brushSettings.lastDabY = pos.y; brushSettings.distSinceLastDab = 0;
-
-// Shift Line Initial Tracking
 strokeStartPos = { ...pos };
 lockAxis = null;
-
 if (brushSettings.jitterMode === 'stroke') {
 brushSettings.strokeHueOffset = (Math.random() - 0.5) * brushSettings.hueJitter * 360;
 brushSettings.strokeSatOffset = (Math.random() - 0.5) * brushSettings.satJitter * 100;
@@ -1505,20 +1429,17 @@ return;
 }
 const pos = getPos(e);
 lastMouseData = pos;
-
-// Straight line snap logic
 if (isPainting && isShiftDown && strokeStartPos) {
-    if (lockAxis === null) {
-        const dx = Math.abs(pos.x - strokeStartPos.x);
-        const dy = Math.abs(pos.y - strokeStartPos.y);
-        if (dx > 10 || dy > 10) {
-            lockAxis = dx > dy ? 'h' : 'v';
-        }
-    }
-    if (lockAxis === 'h') pos.y = strokeStartPos.y;
-    if (lockAxis === 'v') pos.x = strokeStartPos.x;
+if (lockAxis === null) {
+const dx = Math.abs(pos.x - strokeStartPos.x);
+const dy = Math.abs(pos.y - strokeStartPos.y);
+if (dx > 10 || dy > 10) {
+lockAxis = dx > dy ? 'h' : 'v';
 }
-
+}
+if (lockAxis === 'h') pos.y = strokeStartPos.y;
+if (lockAxis === 'v') pos.x = strokeStartPos.x;
+}
 if (isAltDown && isPainting) sampleColorAt(pos);
 if (isTransforming) {
 if (transformState.activeHandle) { updateTransform(pos); renderStack(); } else hoveredHandle = getTransformHandle(pos.x, pos.y);
@@ -1531,13 +1452,6 @@ updateCursor(pos);
 }
 lastInputX = pos.x; lastInputY = pos.y;
 }
-
-function draw(e) {
-    // This wrapper is for pointermove compatibility
-    const pos = getPos(e);
-    draw_impl(pos, e.pressure);
-}
-
 function draw_impl(pos, pressureInput) {
 const layer = layers[activeIdx];
 if (!layer || !layer.visible) return;
@@ -1590,7 +1504,6 @@ brushSettings.distSinceLastDab -= spacingPx;
 }
 lastX = currentX; lastY = currentY; lastPressure = smoothP;
 }
-
 function stop(e) {
 if (isPanning) { isPanning = false; stack.style.cursor = isSpaceDown ? 'grab' : (isTransforming ? 'crosshair' : 'none'); return; }
 if (isTransforming) transformState.activeHandle = null;
@@ -1672,23 +1585,22 @@ layer.ctx.restore();
 activeStrokeCtx.clearRect(0,0,INTERNAL_RES, INTERNAL_RES);
 }
 function getTransformHandle(x, y) {
-const s = transformState; 
-const sc = INTERNAL_RES / (BASE_DISPLAY_SIZE * zoom); // Dynamic canvas scale factor
-const threshold = 30 * sc; // Grabbable threshold in canvas units
-const hw = (s.width / 2) * s.scale; 
+const s = transformState;
+const sc = INTERNAL_RES / (BASE_DISPLAY_SIZE * zoom);
+const threshold = 30 * sc;
+const hw = (s.width / 2) * s.scale;
 const hh = (s.height / 2) * s.scale;
-// Rotation handle logic (consistent arm length in screen space)
 const rotDist = 60 * sc;
 const rx_local = 0;
 const ry_local = -hh - rotDist;
 const rotX = s.x + rx_local * Math.cos(s.rotation) - ry_local * Math.sin(s.rotation);
 const rotY = s.y + rx_local * Math.sin(s.rotation) + ry_local * Math.cos(s.rotation);
 if (Math.hypot(x - rotX, y - rotY) < threshold) return 'rotate';
-const corners = [ 
-{ id: 'tl', x: -hw, y: -hh }, 
-{ id: 'tr', x: hw, y: -hh }, 
-{ id: 'bl', x: -hw, y: hh }, 
-{ id: 'br', x: hw, y: hh } 
+const corners = [
+{ id: 'tl', x: -hw, y: -hh },
+{ id: 'tr', x: hw, y: -hh },
+{ id: 'bl', x: -hw, y: hh },
+{ id: 'br', x: hw, y: hh }
 ];
 for (const c of corners) {
 const px = s.x + c.x * Math.cos(s.rotation) - c.y * Math.sin(s.rotation);
@@ -1710,14 +1622,12 @@ else if (['tl', 'tr', 'bl', 'br'].includes(s.activeHandle)) { s.scale = Math.max
 function updateCursor(pos) {
 if (!pos) return;
 curCtx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
-// Check if hovering over UI panels to hide brush cursor
 const targetEl = document.elementFromPoint(pos.rawX, pos.rawY);
 if (targetEl && (targetEl.closest('.ui-panel') || targetEl.closest('.draggable-panel'))) {
 return;
 }
 const vRect = viewport.getBoundingClientRect();
 const sRect = stack.getBoundingClientRect();
-// Accurate Screen-space projection
 function project(ix, iy) {
 const centerX = sRect.left + sRect.width / 2 - vRect.left;
 const centerY = sRect.top + sRect.height / 2 - vRect.top;
@@ -1759,44 +1669,53 @@ if (isClosed) curCtx.closePath();
 curCtx.stroke();
 curCtx.restore();
 }
-// 1. High-precision Sampling Target feedback
 if (isAltDown) {
-    curCtx.save();
-    curCtx.translate(mx, my);
-    
-    // Outer shadow ring
-    curCtx.beginPath();
-    curCtx.arc(0, 0, 12, 0, Math.PI * 2);
-    curCtx.strokeStyle = outlineColor;
-    curCtx.lineWidth = 2;
-    curCtx.stroke();
-    
-    // Inner color fill
-    curCtx.beginPath();
-    curCtx.arc(0, 0, 10, 0, Math.PI * 2);
-    curCtx.fillStyle = color;
-    curCtx.fill();
-    
-    // Precise crosshairs
-    curCtx.beginPath();
-    curCtx.moveTo(-15, 0); curCtx.lineTo(-5, 0);
-    curCtx.moveTo(15, 0); curCtx.lineTo(5, 0);
-    curCtx.moveTo(0, -15); curCtx.lineTo(0, -5);
-    curCtx.moveTo(0, 15); curCtx.lineTo(0, 5);
-    curCtx.strokeStyle = outlineColor;
-    curCtx.lineWidth = 1;
-    curCtx.stroke();
-    
-    curCtx.restore();
-    return;
+curCtx.save();
+curCtx.translate(mx, my);
+curCtx.beginPath();
+curCtx.arc(0, 0, 12, 0, Math.PI * 2);
+curCtx.strokeStyle = outlineColor;
+curCtx.lineWidth = 2;
+curCtx.stroke();
+curCtx.beginPath();
+curCtx.arc(0, 0, 10, 0, Math.PI * 2);
+curCtx.fillStyle = color;
+curCtx.fill();
+curCtx.beginPath();
+curCtx.moveTo(-15, 0); curCtx.lineTo(-5, 0);
+curCtx.moveTo(15, 0); curCtx.lineTo(5, 0);
+curCtx.moveTo(0, -15); curCtx.lineTo(0, -5);
+curCtx.moveTo(0, 15); curCtx.lineTo(0, 5);
+curCtx.strokeStyle = outlineColor;
+curCtx.lineWidth = 1;
+curCtx.stroke();
+curCtx.restore();
+return;
 }
 if (activeSelectionPoints.length > 2) {
 curCtx.strokeStyle = outlineColor;
 drawSelectionLine(activeSelectionPoints, true, selectionDashOffset);
 }
-if (mode === 'lasso' && isPainting && lassoPoints.length > 0) {
-curCtx.strokeStyle = outlineColor;
-drawSelectionLine(lassoPoints, false, selectionDashOffset);
+
+// UNIQUE LASSO CURSOR Logic
+if (mode === 'lasso') {
+    curCtx.save();
+    curCtx.translate(mx, my);
+    curCtx.strokeStyle = outlineColor;
+    curCtx.lineWidth = 1.5;
+    
+    // Draw Lasso Icon (Loop and Tail)
+    curCtx.beginPath();
+    curCtx.arc(5, 5, 6, 0, Math.PI * 2); // The Loop
+    curCtx.moveTo(0, 0);
+    curCtx.lineTo(3, 3); // The Tail
+    curCtx.stroke();
+    curCtx.restore();
+
+    if (isPainting && lassoPoints.length > 0) {
+        curCtx.strokeStyle = outlineColor;
+        drawSelectionLine(lassoPoints, false, selectionDashOffset);
+    }
 } else if (mode === 'bucket' || mode === 'gradient') {
 curCtx.strokeStyle = outlineColor; curCtx.lineWidth = 2; const s = 10;
 curCtx.beginPath(); curCtx.moveTo(mx - s, my - s); curCtx.lineTo(mx + s, my + s);
@@ -1817,16 +1736,13 @@ const cBR = getCorner(hw, hh);
 const cBL = getCorner(-hw, hh);
 const cMidTop = getCorner(0, -hh);
 const cRot = getCorner(0, -hh - 60 * sc);
-// Draw bounding box
 curCtx.strokeStyle = '#D38E3F'; curCtx.lineWidth = 2;
 curCtx.beginPath();
 curCtx.moveTo(cTL.x, cTL.y); curCtx.lineTo(cTR.x, cTR.y);
 curCtx.lineTo(cBR.x, cBR.y); curCtx.lineTo(cBL.x, cBL.y);
 curCtx.closePath(); curCtx.stroke();
-// Draw Rotation Arm
 curCtx.beginPath(); curCtx.moveTo(cMidTop.x, cMidTop.y);
 curCtx.lineTo(cRot.x, cRot.y); curCtx.stroke();
-// Helper for handles (Enlarged and with outlines for visibility)
 const drawHandle = (p, isCircle = false) => {
 curCtx.fillStyle = '#D38E3F'; curCtx.strokeStyle = 'white'; curCtx.lineWidth = 2;
 if (isCircle) {
@@ -1848,57 +1764,49 @@ const screenRadius = (brushSize / 2) * (sRect.width / INTERNAL_RES);
 if (brushTip === 'round') { curCtx.beginPath(); curCtx.arc(0, 0, screenRadius, 0, Math.PI * 2); curCtx.stroke(); }
 else if (brushTip === 'flat') { curCtx.strokeRect(-screenRadius, -screenRadius/3, screenRadius*2, screenRadius*2/3); }
 else {
-    // Preview custom brush shape if selected
-    const brush = brushLibrary.find(b => b.id === brushTip);
-    if (brush && brush.canvas) {
-        curCtx.globalAlpha = 0.5;
-        curCtx.drawImage(brush.canvas, -screenRadius, -screenRadius, screenRadius*2, screenRadius*2);
-    } else { curCtx.beginPath(); curCtx.arc(0, 0, screenRadius, 0, Math.PI * 2); curCtx.stroke(); }
+const brush = brushLibrary.find(b => b.id === brushTip);
+if (brush && brush.canvas) {
+curCtx.globalAlpha = 0.5;
+curCtx.drawImage(brush.canvas, -screenRadius, -screenRadius, screenRadius*2, screenRadius*2);
+} else { curCtx.beginPath(); curCtx.arc(0, 0, screenRadius, 0, Math.PI * 2); curCtx.stroke(); }
 }
 curCtx.restore();
 }
 curCtx.restore();
 }
-
 function renderDab(ctx, x, y, size, colorString, hardness, currentFlow) {
-    ctx.save(); 
-    ctx.translate(x, y); 
-    ctx.rotate(brushRotation * Math.PI / 180); 
-    ctx.globalAlpha = currentFlow;
-
-    if (brushTip === 'round') {
-        const rad = size / 2; 
-        if (hardness >= 0.99) {
-            ctx.fillStyle = colorString;
-            ctx.beginPath(); ctx.arc(0, 0, rad, 0, Math.PI * 2); ctx.fill();
-        } else {
-            // Natural hardness falloff for airbrush feel
-            const innerRad = rad * hardness; 
-            const grid = ctx.createRadialGradient(0, 0, innerRad, 0, 0, rad);
-            grid.addColorStop(0, colorString); 
-            // Better Gaussian-style falloff stop
-            grid.addColorStop(Math.max(hardness, 0.1), colorString.replace('rgb', 'rgba').replace(')', `, ${0.8 * Math.sqrt(hardness + 0.05)})`));
-            grid.addColorStop(1, colorString.replace('rgb', 'rgba').replace(')', ', 0)'));
-            ctx.fillStyle = grid; ctx.beginPath(); ctx.arc(0, 0, rad, 0, Math.PI * 2); ctx.fill();
-        }
-    } else if (brushTip === 'flat') { 
-        ctx.fillStyle = colorString; 
-        ctx.fillRect(-size/2, -size/6, size, size/3); 
-    } else {
-        // Optimization: Use pre-tinted custom brush if available
-        if (customBrushTintedCanvas) {
-            ctx.drawImage(customBrushTintedCanvas, -size/2, -size/2, size, size);
-        }
-    }
-    ctx.restore();
+ctx.save();
+ctx.translate(x, y);
+ctx.rotate(brushRotation * Math.PI / 180);
+ctx.globalAlpha = currentFlow;
+if (brushTip === 'round') {
+const rad = size / 2;
+if (hardness >= 0.99) {
+ctx.fillStyle = colorString;
+ctx.beginPath(); ctx.arc(0, 0, rad, 0, Math.PI * 2); ctx.fill();
+} else {
+const innerRad = rad * hardness;
+const grid = ctx.createRadialGradient(0, 0, innerRad, 0, 0, rad);
+grid.addColorStop(0, colorString);
+grid.addColorStop(Math.max(hardness, 0.1), colorString.replace('rgb', 'rgba').replace(')', `, ${0.8 * Math.sqrt(hardness + 0.05)})`));
+grid.addColorStop(1, colorString.replace('rgb', 'rgba').replace(')', ', 0)'));
+ctx.fillStyle = grid; ctx.beginPath(); ctx.arc(0, 0, rad, 0, Math.PI * 2); ctx.fill();
 }
-
+} else if (brushTip === 'flat') {
+ctx.fillStyle = colorString;
+ctx.fillRect(-size/2, -size/6, size, size/3);
+} else {
+if (customBrushTintedCanvas) {
+ctx.drawImage(customBrushTintedCanvas, -size/2, -size/2, size, size);
+}
+}
+ctx.restore();
+}
 function getEngineColor(h, s, v) {
 h = (parseFloat(h) + 360) % 360; s = Math.max(0, Math.min(100, parseFloat(s))) / 100; v = Math.max(0, Math.min(100, parseFloat(v))) / 100;
 const f = n => v * (1 - s * Math.max(0, Math.min((n + h / 60) % 6, 4 - (n + h / 60) % 6, 1)));
 return `rgb(${Math.round(f(5) * 255)},${Math.round(f(3) * 255)},${Math.round(f(1) * 255)})`;
 }
-
 function floodFill(x,y) {
 const l = layers[activeIdx];
 const buffer = document.createElement('canvas');
@@ -1944,17 +1852,13 @@ b.classList.toggle('active', b.id === `btn-${m}` || (b.id === 'btn-bucket' && (m
 updateBrushTint();
 updateBrushPreview();
 }
-
 function getPos(e) {
 const sRect = stack.getBoundingClientRect();
-// Mouse relative to stack center
 let dx = e.clientX - (sRect.left + sRect.width / 2);
 let dy = e.clientY - (sRect.top + sRect.height / 2);
-// Un-rotate global canvas
 const rad = -(rotation * Math.PI) / 180;
 let rotX = dx * Math.cos(rad) - dy * Math.sin(rad);
 let rotY = dx * Math.sin(rad) + dy * Math.cos(rad);
-// Un-zoom and Un-flip
 const unrotatedWidth = BASE_DISPLAY_SIZE * zoom;
 const sFactor = unrotatedWidth / INTERNAL_RES;
 rotX /= sFactor;
@@ -1962,48 +1866,39 @@ rotY /= sFactor;
 if (flipH) rotX = -rotX;
 return { x: rotX + INTERNAL_RES/2, y: rotY + INTERNAL_RES/2, rawX: e.clientX, rawY: e.clientY };
 }
-
 function setupHSVSystem() {
 const box = document.getElementById('hsvBox');
 let isHSVDragging = false;
-
 const upd = (e) => {
-    const r = box.getBoundingClientRect(); 
-    curS = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * 100; 
-    curV = (1 - Math.max(0, Math.min(1, (e.clientY - r.top) / r.height))) * 100;
-    finalizeColor();
+const r = box.getBoundingClientRect();
+curS = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * 100;
+curV = (1 - Math.max(0, Math.min(1, (e.clientY - r.top) / r.height))) * 100;
+finalizeColor();
 };
-
 const pointerDownHandler = (e) => {
-    // Only respond to left clicks for selection
-    if (e.button !== 0) return;
-    isHSVDragging = true;
-    box.setPointerCapture(e.pointerId);
-    upd(e);
+if (e.button !== 0) return;
+isHSVDragging = true;
+box.setPointerCapture(e.pointerId);
+upd(e);
 };
-
 const pointerMoveHandler = (e) => {
-    if (isHSVDragging) upd(e);
+if (isHSVDragging) upd(e);
 };
-
 const pointerUpHandler = (e) => {
-    if (isHSVDragging) {
-        isHSVDragging = false;
-        box.releasePointerCapture(e.pointerId);
-    }
+if (isHSVDragging) {
+isHSVDragging = false;
+box.releasePointerCapture(e.pointerId);
+}
 };
-
 box.addEventListener('pointerdown', pointerDownHandler);
 box.addEventListener('pointermove', pointerMoveHandler);
 box.addEventListener('pointerup', pointerUpHandler);
 box.addEventListener('pointercancel', pointerUpHandler);
-
 document.getElementById('hueBar').oninput = (e) => { curH = parseFloat(e.target.value); finalizeColor(); };
 document.getElementById('slider-h').oninput = (e) => { curH = parseFloat(e.target.value); finalizeColor(); };
 document.getElementById('slider-s').oninput = (e) => { curS = parseFloat(e.target.value); finalizeColor(); };
 document.getElementById('slider-v').oninput = (e) => { curV = parseFloat(e.target.value); finalizeColor(); };
 }
-
 function finalizeColor() {
 const h = parseFloat(curH), s = parseFloat(curS)/100, v = parseFloat(curV)/100;
 const f = n => v * (1 - s * Math.max(0, Math.min((n + h / 60) % 6, 4 - (n + h / 60) % 6, 1)));
