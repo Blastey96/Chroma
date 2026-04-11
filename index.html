@@ -51,6 +51,7 @@ cursor: none;
 line-height: 0;
 transform-origin: center center;
 touch-action: none;
+flex-shrink: 0; /* Prevents canvas from squishing in small viewports */
 }
 #displayCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
 #activeStrokeCanvas { display: none; }
@@ -499,7 +500,7 @@ onclick="setMode(lastBucketTool)" title="Paint Bucket / Gradient (G)">
         <div class="grid grid-cols-2 gap-4 mb-4">
             <div class="modal-input-group">
                 <label class="modal-label">DPI</label>
-                <input type="number" id="modalDPI" class="modal-input" value="72">
+                <input type="number" id="modalDPI" class="modal-input" value="144">
             </div>
             <div class="modal-input-group">
                 <label class="modal-label">Background</label>
@@ -636,8 +637,8 @@ function init() {
     window.addEventListener('resize', resizeOverlay);
     resizeOverlay();
 
-    // Create Initial Project
-    createNewProject("Untitled 1", 800, 800, 72, "#ffffff");
+    // Create Initial Project with original defaults (800x800 display, 144 DPI for 1600x1600 internal)
+    createNewProject("Untitled 1", 800, 800, 144, "#ffffff");
 
     stack.addEventListener('pointerdown', start);
     window.addEventListener('pointermove', move);
@@ -704,8 +705,10 @@ function init() {
 
 // Multi-Document Logic
 function createNewProject(name, displayW, displayH, dpi, bgColor) {
-    const internalW = Math.round(displayW * (2)); // Simulating resolution scale
-    const internalH = Math.round(displayH * (2));
+    // Calculate internal resolution based on DPI (Standard screen is 72 DPI)
+    const scaleFactor = dpi / 72;
+    const internalW = Math.round(displayW * scaleFactor);
+    const internalH = Math.round(displayH * scaleFactor);
     
     const id = Date.now() + Math.random();
     const project = {
@@ -776,7 +779,7 @@ function closeProject(id, e) {
     
     projects.splice(idx, 1);
     if (projects.length === 0) {
-        createNewProject("Untitled Project", 800, 800, 72, "#ffffff");
+        createNewProject("Untitled Project", 800, 800, 144, "#ffffff");
     } else if (activeProjectId === id) {
         switchProject(projects[Math.max(0, idx - 1)].id);
     } else {
@@ -805,7 +808,7 @@ function confirmNewProject() {
     const name = document.getElementById('modalProjName').value || "Untitled";
     const w = parseInt(document.getElementById('modalWidth').value) || 800;
     const h = parseInt(document.getElementById('modalHeight').value) || 800;
-    const dpi = parseInt(document.getElementById('modalDPI').value) || 72;
+    const dpi = parseInt(document.getElementById('modalDPI').value) || 144;
     const bg = document.getElementById('modalBgColor').value;
     
     createNewProject(name, w, h, dpi, bg);
@@ -864,7 +867,7 @@ async function processChromaData(text, handle, filename) {
         const w = project.width || 800;
         const h = project.height || 800;
         
-        createNewProject(projName, w, h, 72, "#ffffff");
+        createNewProject(projName, w, h, 144, "#ffffff");
         const activeProj = projects.find(p => p.id === activeProjectId);
         activeProj.handle = handle;
         activeProj.layers = []; 
