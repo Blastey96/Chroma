@@ -175,7 +175,8 @@ gap: 4px;
 </style>
 </head>
 <body class="flex flex-col h-screen">
-<header class="h-14 ui-panel flex items-center px-6 justify-between z-50 border-b">
+<!-- Header elevated to ensure it stays above all UI elements -->
+<header class="h-14 ui-panel flex items-center px-6 justify-between z-[10000] border-b">
 <div class="flex items-center gap-6">
 <h1 class="text-[11px] font-black tracking-[0.4em] text-[#D38E3F] uppercase flex items-center gap-2">
 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="transform: rotate(45deg);">
@@ -299,7 +300,8 @@ Deselect
 <div id="tabBar"></div>
 
 <div class="flex flex-1 overflow-hidden relative">
-<aside class="w-16 ui-panel flex flex-col items-center py-6 gap-6 border-r z-40">
+<!-- Left Sidebar elevated to stay above floating panels -->
+<aside class="w-16 ui-panel flex flex-col items-center py-6 gap-6 border-r z-[9000]">
 <button id="btn-brush" class="tool-btn active p-3 rounded-xl transition-all" onclick="setMode('brush')" title="Brush (B)">
 <i class="fas fa-paint-brush"></i>
 </button>
@@ -815,7 +817,6 @@ function init() {
     requestAnimationFrame(animateMarchingAnts);
     updateBrushPreview();
 
-    // Ensure persistent click-to-open logic for styluses
     window.addEventListener('pointerdown', (e) => {
         if (!e.target.closest('.tool-btn') && !e.target.closest('.tool-popup')) {
             hideToolPopups();
