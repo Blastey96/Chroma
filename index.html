@@ -515,6 +515,10 @@ onclick="toggleToolPopup('shapes')" title="Shapes (Rectangle, Ellipse, Line)">
 <div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Scatter</span><span id="bs-scatter-val">0</span></div>
 <input type="range" id="bs-scatter" min="0" max="100" step="1" value="0" class="hsb-track">
 </div>
+<div>
+    <div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Angle Jitter</span><span id="bs-angleJitter-val">0%</span></div>
+    <input type="range" id="bs-angleJitter" min="0" max="100" step="1" value="0" class="hsb-track">
+</div>
 <div class="pt-2 border-t border-white/5">
     <h4 class="text-[8px] uppercase font-black text-[#D38E3F] mb-3">Texture</h4>
     <div class="space-y-3">
@@ -525,6 +529,10 @@ onclick="toggleToolPopup('shapes')" title="Shapes (Rectangle, Ellipse, Line)">
         <div>
             <div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Density</span><span id="bs-textureDensity-val">100%</span></div>
             <input type="range" id="bs-textureDensity" min="1" max="100" value="100" class="hsb-track">
+        </div>
+        <div>
+            <div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Scale</span><span id="bs-textureScale-val">100%</span></div>
+            <input type="range" id="bs-textureScale" min="10" max="500" value="100" class="hsb-track">
         </div>
         <input type="file" id="brushTextureInput" class="hidden" accept="image/*" onchange="handleBrushTextureImport(event)">
     </div>
@@ -715,15 +723,12 @@ let lastShapeTool = 'rect';
 let lastLassoTool = 'lasso';
 let gradientType = 'fg-bg';
 let brushTip = 'round';
-let brushLibrary = [
-{ id: 'round', type: 'round', name: 'Round' },
-{ id: 'flat', type: 'flat', name: 'Flat' }
-];
+let brushLibrary = [];
 let customBrushTintedCanvas = null;
 let lastX = 0, lastY = 0;
 let lastInputX = 0, lastInputY = 0;
 let lastPressure = 1.0;
-let strokeHistory = []; // Points for spline interpolation
+let strokeHistory = []; 
 let isAltDown = false;
 let isSpaceDown = false;
 let isShiftDown = false;
@@ -751,7 +756,6 @@ let draggedIdx = null;
 let dropIdx = null;
 let internalClipboard = null;
 
-// DIRTY RECTANGLE STATE
 let needsFullRedraw = true;
 let currentDirtyRect = null;
 
@@ -760,22 +764,39 @@ spacing: 0.01,
 hardness: 1.0,
 flow: 1.0,
 scatter: 0.0,
+angleJitter: 0.0,
 hueJitter: 0.0,
 satJitter: 0.0,
 briJitter: 0.0,
 jitterMode: 'tip',
 texture: null,
 textureDensity: 1.0,
+textureScale: 1.0,
 strokeHueOffset: 0,
 strokeSatOffset: 0,
 strokeBriOffset: 0,
 lastDabX: 0, lastDabY: 0, distSinceLastDab: 0
 };
 
+// TOOL SETTINGS PERSISTENCE
+const toolSettings = {
+    brush: {
+        size: 30,
+        opacity: 1.0,
+        tip: 'round',
+        settings: { ...brushSettings }
+    },
+    eraser: {
+        size: 50,
+        opacity: 1.0,
+        tip: 'round',
+        settings: { ...brushSettings, hardness: 1.0 }
+    }
+};
+
 const dabBufferCanvas = document.createElement('canvas');
 const dabBufferCtx = dabBufferCanvas.getContext('2d');
 
-// Scratch canvases for mask processing
 const scratchSelectionCanvas = document.createElement('canvas');
 const scratchSelectionCtx = scratchSelectionCanvas.getContext('2d');
 
@@ -790,10 +811,14 @@ function init() {
     window.addEventListener('resize', resizeOverlay);
     resizeOverlay();
     
-    // SETUP DRAFTSMAN PENCIL AS DEFAULT
-    setupDraftsmanPencil();
+    // Default system state
+    brushTip = 'round';
+    usePressure = false;
+    usePressureSize = false;
 
+    setupDefaultBrushes();
     createNewProject("Untitled 1", 800, 800, 144, "#ffffff");
+    
     stack.addEventListener('pointerdown', start);
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', stop);
@@ -885,19 +910,17 @@ function init() {
     renderBrushLibrary();
     window.addEventListener('pointermove', onGlobalReorderMove);
     window.addEventListener('pointerup', onGlobalReorderUp);
+
     function animateMarchingAnts() {
         selectionDashOffset = (selectionDashOffset + 0.4) % 16;
         if (activeSelectionPoints.length > 0 || isPainting || isTransforming || mode === 'lasso' || mode === 'poly-lasso' || isAltDown) {
             updateCursor(lastMouseData);
         }
-        
-        // Optimize Loop: Only render stack if needed
         if (needsFullRedraw || currentDirtyRect) {
             renderStack(currentDirtyRect);
             currentDirtyRect = null;
             needsFullRedraw = false;
         }
-        
         requestAnimationFrame(animateMarchingAnts);
     }
     requestAnimationFrame(animateMarchingAnts);
@@ -912,28 +935,28 @@ function init() {
     window.addEventListener('paste', handleSystemPaste);
 }
 
-// SETUP DRAFTSMAN PENCIL
-function setupDraftsmanPencil() {
+function setupDefaultBrushes() {
+    brushLibrary = [
+        { id: 'round', type: 'round', name: 'Round', settings: { spacing: 0.01, texture: null } },
+        { id: 'flat', type: 'flat', name: 'Flat', settings: { spacing: 0.01, texture: null } }
+    ];
+
+    // Draftsman Pencil
     const pencilCanvas = document.createElement('canvas');
     pencilCanvas.width = pencilCanvas.height = 256;
     const pctx = pencilCanvas.getContext('2d');
-    
-    // Create elongated organic draftsman tip (63% roundness, 94 deg angle)
     pctx.fillStyle = 'white';
     pctx.translate(128, 128);
     pctx.rotate(94 * Math.PI / 180);
     pctx.beginPath();
-    // Drawing an oval-ish shape with some roughness
-    const rx = 110, ry = 70;
+    const prx = 110, pry = 70;
     for (let a = 0; a < Math.PI * 2; a += 0.1) {
-        const radX = rx + (Math.random() - 0.5) * 10;
-        const radY = ry + (Math.random() - 0.5) * 10;
+        const radX = prx + (Math.random() - 0.5) * 10;
+        const radY = pry + (Math.random() - 0.5) * 10;
         pctx.lineTo(Math.cos(a) * radX, Math.sin(a) * radY);
     }
     pctx.closePath();
     pctx.fill();
-    
-    // Create soft edges/noise to simulate graphite texture
     const pData = pctx.getImageData(0,0,256,256);
     for(let i=0; i<pData.data.length; i+=4) {
         if(pData.data[i+3] > 0) {
@@ -942,32 +965,54 @@ function setupDraftsmanPencil() {
         }
     }
     pctx.putImageData(pData, 0, 0);
+    brushLibrary.push({ id: 'draftsman_pencil', type: 'custom', name: 'Draftsman Pencil', mask: pencilCanvas.toDataURL(), canvas: pencilCanvas, settings: { spacing: 0.01, hardness: 1.0, flow: 1.0, scatter: 0.0, angleJitter: 0.0, hueJitter: 0, satJitter: 0, briJitter: 0, jitterMode: 'tip', textureDensity: 1.0, texture: null } });
 
-    const draftsmanBrush = {
-        id: 'draftsman_pencil',
-        type: 'custom',
-        name: 'Draftsman Pencil',
-        mask: pencilCanvas.toDataURL(),
-        canvas: pencilCanvas,
-        settings: {
-            spacing: 0.07, // Matching 7% from screenshot
-            hardness: 1.0,
-            flow: 1.0,
-            scatter: 0.0,
-            hueJitter: 0,
-            satJitter: 0,
-            briJitter: 0,
-            jitterMode: 'tip',
-            textureDensity: 1.0
-        }
-    };
-    brushLibrary.push(draftsmanBrush);
-    
-    // Set as default
-    brushTip = 'draftsman_pencil';
-    Object.assign(brushSettings, draftsmanBrush.settings);
-    usePressure = true; // Transfer control
-    usePressureSize = true; // Shape dynamics control
+    // Rake Brush
+    const rakeCanvas = document.createElement('canvas');
+    rakeCanvas.width = rakeCanvas.height = 256;
+    const rctx = rakeCanvas.getContext('2d');
+    rctx.fillStyle = 'white';
+    const squareSize = 24;
+    const gap = 16;
+    const startOffset = 128 - ((5 * squareSize + 4 * gap) / 2);
+    for(let i=0; i<5; i++) {
+        rctx.fillRect(startOffset + i * (squareSize + gap), 116, squareSize, squareSize);
+    }
+    brushLibrary.push({ id: 'rake', type: 'custom', name: 'Rake', mask: rakeCanvas.toDataURL(), canvas: rakeCanvas, settings: { spacing: 0.01, hardness: 1.0, flow: 1.0, scatter: 0.0, angleJitter: 0.0, texture: null } });
+
+    // Hatching Brush (Smooth pill)
+    const hatchingCanvas = document.createElement('canvas');
+    hatchingCanvas.width = hatchingCanvas.height = 256;
+    const hctx = hatchingCanvas.getContext('2d');
+    hctx.fillStyle = 'white';
+    hctx.beginPath();
+    hctx.roundRect(28, 108, 200, 40, 20);
+    hctx.fill();
+    brushLibrary.push({ id: 'hatching', type: 'custom', name: 'Hatching', mask: hatchingCanvas.toDataURL(), canvas: hatchingCanvas, settings: { spacing: 0.34, hardness: 1.0, flow: 1.0, scatter: 0.0, angleJitter: 0.0, texture: null } });
+
+    // Halftone Texture (Circles)
+    const htCanvas = document.createElement('canvas'); htCanvas.width = htCanvas.height = 128;
+    const htCtx = htCanvas.getContext('2d'); 
+    htCtx.fillStyle = 'white';
+    htCtx.beginPath(); htCtx.arc(64, 64, 48, 0, Math.PI * 2); htCtx.fill();
+    brushLibrary.push({ id: 'halftone', type: 'round', name: 'Halftone', settings: { spacing: 0.01, texture: htCanvas, textureDensity: 1.0, textureScale: 0.4 } });
+
+    // Square Halftone Texture
+    const shtCanvas = document.createElement('canvas'); shtCanvas.width = shtCanvas.height = 128;
+    const shtCtx = shtCanvas.getContext('2d'); 
+    shtCtx.fillStyle = 'white';
+    shtCtx.fillRect(16, 16, 96, 96);
+    brushLibrary.push({ id: 'sq_halftone', type: 'round', name: 'Square Halftone', settings: { spacing: 0.01, texture: shtCanvas, textureDensity: 1.0, textureScale: 0.4 } });
+
+    // Scribble Texture
+    const scribCanvas = document.createElement('canvas'); scribCanvas.width = scribCanvas.height = 256;
+    const sctx = scribCanvas.getContext('2d'); 
+    sctx.strokeStyle = 'white'; sctx.lineWidth = 4;
+    sctx.beginPath();
+    sctx.moveTo(128, 128);
+    for(let i=0; i<60; i++) { sctx.lineTo(Math.random()*256, Math.random()*256); }
+    sctx.stroke();
+    brushLibrary.push({ id: 'scribble', type: 'round', name: 'Scribble', settings: { spacing: 0.01, texture: scribCanvas, textureDensity: 0.9, textureScale: 1.0 } });
 }
 
 function handleSystemPaste(e) {
@@ -986,13 +1031,7 @@ function handleSystemPaste(e) {
                     const ctx = canvas.getContext('2d');
                     const scale = Math.min(INTERNAL_RES_W / img.width, INTERNAL_RES_H / img.height);
                     ctx.drawImage(img, (INTERNAL_RES_W - img.width * scale) / 2, (INTERNAL_RES_H - img.height * scale) / 2, img.width * scale, img.height * scale);
-                    
-                    const newLayer = {
-                        id: Date.now() + Math.random(),
-                        type: 'layer',
-                        name: "Pasted Image",
-                        canvas, ctx, visible: true, alphaLocked: false, locked: false, clippingMask: false, blendMode: 'source-over', opacity: 1.0, maskCanvas: null, maskCtx: null, parentId: null
-                    };
+                    const newLayer = { id: Date.now() + Math.random(), type: 'layer', name: "Pasted Image", canvas, ctx, visible: true, alphaLocked: false, locked: false, clippingMask: false, blendMode: 'source-over', opacity: 1.0, maskCanvas: null, maskCtx: null, parentId: null };
                     layers.splice(activeIdx, 0, newLayer);
                     refreshUI();
                     needsFullRedraw = true;
@@ -1008,12 +1047,10 @@ function handleSystemPaste(e) {
 function copyToInternalClipboard() {
     const layer = layers[activeIdx];
     if (!layer || layer.type === 'group') return;
-    
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = INTERNAL_RES_W;
     tempCanvas.height = INTERNAL_RES_H;
     const tctx = tempCanvas.getContext('2d');
-    
     if (activeSelectionPoints.length > 0) {
         tctx.drawImage(layer.canvas, 0, 0);
         tctx.globalCompositeOperation = 'destination-in';
@@ -1021,7 +1058,6 @@ function copyToInternalClipboard() {
     } else {
         tctx.drawImage(layer.canvas, 0, 0);
     }
-    
     internalClipboard = tempCanvas;
     showToast("Layer Content Copied");
 }
@@ -1029,22 +1065,14 @@ function copyToInternalClipboard() {
 function pasteFromInternalClipboard() {
     if (!internalClipboard) return;
     saveUndo();
-    
     const canvas = document.createElement('canvas');
     canvas.width = INTERNAL_RES_W;
     canvas.height = INTERNAL_RES_H;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(internalClipboard, 0, 0);
-    
     const activeLayer = layers[activeIdx];
     const targetParent = (activeLayer && activeLayer.type === 'group') ? activeLayer.id : (activeLayer ? activeLayer.parentId : null);
-
-    const newLayer = {
-        id: Date.now() + Math.random(),
-        type: 'layer',
-        name: "Pasted Content",
-        canvas, ctx, visible: true, alphaLocked: false, locked: false, clippingMask: false, blendMode: 'source-over', opacity: 1.0, maskCanvas: null, maskCtx: null, parentId: targetParent
-    };
+    const newLayer = { id: Date.now() + Math.random(), type: 'layer', name: "Pasted Content", canvas, ctx, visible: true, alphaLocked: false, locked: false, clippingMask: false, blendMode: 'source-over', opacity: 1.0, maskCanvas: null, maskCtx: null, parentId: targetParent };
     layers.splice(activeIdx, 0, newLayer);
     refreshUI();
     needsFullRedraw = true;
@@ -1110,18 +1138,14 @@ function sampleRefColor(e) {
 function updateRefCanvas() {
     const panel = document.getElementById('refWindowPanel');
     if (panel.classList.contains('hidden')) return;
-
     const parent = refCanvas.parentElement;
     if (!parent || parent.clientWidth === 0) return;
-
     refCanvas.width = parent.clientWidth;
     refCanvas.height = parent.clientHeight;
     refCtx.clearRect(0, 0, refCanvas.width, refCanvas.height);
-
     refCtx.save();
     refCtx.translate(refCanvas.width / 2 + refPanX, refCanvas.height / 2 + refPanY);
     refCtx.scale(refZoom, refZoom);
-
     if (refViewMode === 'canvas') {
         const scale = Math.min(refCanvas.width / INTERNAL_RES_W, refCanvas.height / INTERNAL_RES_H);
         refCtx.scale(scale, scale);
@@ -1144,17 +1168,7 @@ function createNewProject(name, displayW, displayH, dpi, bgColor) {
     const internalW = Math.round(displayW * scaleFactor);
     const internalH = Math.round(displayH * scaleFactor);
     const id = Date.now() + Math.random();
-    const project = {
-        id, name,
-        width: displayW, height: displayH,
-        iW: internalW, iH: internalH,
-        layers: [], activeIdx: 0,
-        undoStack: [], redoStack: [],
-        handle: null,
-        zoom: 1.0, rotation: 0, flipH: false, panX: 0, panY: 0,
-        activeSelectionPoints: [],
-        isMaskActive: false
-    };
+    const project = { id, name, width: displayW, height: displayH, iW: internalW, iH: internalH, layers: [], activeIdx: 0, undoStack: [], redoStack: [], handle: null, zoom: 1.0, rotation: 0, flipH: false, panX: 0, panY: 0, activeSelectionPoints: [], isMaskActive: false };
     const canvas = document.createElement('canvas'); canvas.width = internalW; canvas.height = internalH;
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     ctx.fillStyle = bgColor; ctx.fillRect(0, 0, internalW, internalH);
@@ -1292,24 +1306,16 @@ async function processChromaData(text, handle, filename) {
                     img.src = lData.maskData;
                 });
             }
-            activeProj.layers.push({
-                id: lData.id || Date.now() + Math.random(),
-                type: lData.type || 'layer',
-                name: lData.name, canvas, ctx, visible: lData.visible,
-                alphaLocked: lData.alphaLocked, locked: lData.locked || false, clippingMask: lData.clippingMask,
-                blendMode: lData.blendMode, opacity: lData.opacity,
-                maskCanvas, maskCtx, parentId: lData.parentId || null,
-                expanded: lData.expanded !== undefined ? lData.expanded : true
-            });
+            activeProj.layers.push({ id: lData.id || Date.now() + Math.random(), type: lData.type || 'layer', name: lData.name, canvas, ctx, visible: lData.visible, alphaLocked: lData.alphaLocked, locked: lData.locked || false, clippingMask: lData.clippingMask, blendMode: lData.blendMode, opacity: lData.opacity, maskCanvas, maskCtx, parentId: lData.parentId || null, expanded: lData.expanded !== undefined ? lData.expanded : true });
         }
         layers = activeProj.layers; activeIdx = 0; refreshUI(); needsFullRedraw = true; renderTabs();
     } catch (err) { console.error("Chroma Load Error:", err); showToast("Failed to open Chroma project."); }
 }
 
-function handleChromaImport(e) {
-    const file = e.target.files[0]; if (!file) return;
-    const reader = new FileReader(); reader.onload = (event) => { processChromaData(event.target.result, null, file.name); };
-    reader.readAsText(file); e.target.value = '';
+function handleChromaImport(event) {
+    const file = event.target.files[0]; if (!file) return;
+    const reader = new FileReader(); reader.onload = (e) => { processChromaData(e.target.result, null, file.name); };
+    reader.readAsText(file); event.target.value = '';
 }
 
 function generateChromaProjectObject() {
@@ -1370,7 +1376,9 @@ function setupBrushEngineUI() {
     bind('bs-hardness', 'hardness', 100); 
     bind('bs-flow', 'flow', 100); 
     bind('bs-scatter', 'scatter', 1, false); 
+    bind('bs-angleJitter', 'angleJitter', 100);
     bind('bs-textureDensity', 'textureDensity', 100);
+    bind('bs-textureScale', 'textureScale', 100);
     bind('bs-hueJitter', 'hueJitter', 100); 
     bind('bs-satJitter', 'satJitter', 100); 
     bind('bs-briJitter', 'briJitter', 100);
@@ -1384,26 +1392,34 @@ function toggleBrushLibrary() { const panel = document.getElementById('brushLibr
 
 function renderBrushLibrary() {
     const grid = document.getElementById('brushLibraryGrid'); grid.innerHTML = '';
+    const isLight = document.body.classList.contains('light-mode');
+    const previewColor = isLight ? '#4b5563' : 'rgba(255,255,255,0.5)';
+    
     brushLibrary.forEach(brush => {
         const item = document.createElement('div'); const isActive = brushTip === brush.id;
         item.className = `brush-grid-item ${isActive ? 'active' : ''}`; item.title = brush.name;
-        if (brush.type === 'round') item.innerHTML = `<div class="w-6 h-6 rounded-full bg-white/50 border border-white/20"></div>`;
-        else if (brush.type === 'flat') item.innerHTML = `<div class="w-6 h-2 bg-white/50 border border-white/20"></div>`;
+        if (brush.type === 'round') item.innerHTML = `<div class="w-6 h-6 rounded-full border border-white/20" style="background-color: ${previewColor}"></div>`;
+        else if (brush.type === 'flat') item.innerHTML = `<div class="w-6 h-2 border border-white/20" style="background-color: ${previewColor}"></div>`;
         else if (brush.type === 'custom') {
-            const img = new Image(); img.src = brush.mask; img.className = "w-8 h-8 object-contain opacity-70"; item.appendChild(img);
+            const img = new Image(); img.src = brush.mask; img.className = "w-8 h-8 object-contain opacity-70"; 
+            if (isLight) img.style.filter = "invert(1) brightness(0.5)";
+            item.appendChild(img);
             const del = document.createElement('button'); del.className = "delete-brush"; del.innerHTML = '<i class="fas fa-times"></i>';
             del.onclick = (e) => { e.stopPropagation(); brushLibrary = brushLibrary.filter(b => b.id !== brush.id); if (brushTip === brush.id) brushTip = 'round'; renderBrushLibrary(); updateBrushPreview(); };
             item.appendChild(del);
         }
         item.onclick = () => { 
             brushTip = brush.id; 
-            if (brush.settings) {
-                Object.assign(brushSettings, brush.settings);
-                updateBrushUIFromSettings();
+            // FIX: Explicitly clear texture state to prevent carry-over when switching
+            brushSettings.texture = null;
+            brushSettings.textureScale = 1.0;
+            brushSettings.textureDensity = 1.0;
+            
+            if (brush.settings) { 
+                Object.assign(brushSettings, brush.settings); 
+                updateBrushUIFromSettings(); 
             }
-            updateBrushTint(); 
-            renderBrushLibrary(); 
-            updateBrushPreview(); 
+            updateBrushTint(); renderBrushLibrary(); updateBrushPreview(); 
         };
         grid.appendChild(item);
     });
@@ -1418,8 +1434,12 @@ function updateBrushUIFromSettings() {
     document.getElementById('bs-flow-val').innerText = Math.round(brushSettings.flow * 100) + '%';
     document.getElementById('bs-scatter').value = brushSettings.scatter;
     document.getElementById('bs-scatter-val').innerText = brushSettings.scatter;
+    document.getElementById('bs-angleJitter').value = brushSettings.angleJitter * 100;
+    document.getElementById('bs-angleJitter-val').innerText = Math.round(brushSettings.angleJitter * 100) + '%';
     document.getElementById('bs-textureDensity').value = brushSettings.textureDensity * 100;
     document.getElementById('bs-textureDensity-val').innerText = Math.round(brushSettings.textureDensity * 100) + '%';
+    document.getElementById('bs-textureScale').value = brushSettings.textureScale * 100;
+    document.getElementById('bs-textureScale-val').innerText = Math.round(brushSettings.textureScale * 100) + '%';
     document.getElementById('bs-hueJitter').value = brushSettings.hueJitter * 100;
     document.getElementById('bs-hueJitter-val').innerText = Math.round(brushSettings.hueJitter * 100) + '%';
     document.getElementById('bs-satJitter').value = brushSettings.satJitter * 100;
@@ -1431,39 +1451,14 @@ function updateBrushUIFromSettings() {
 
 function exportBrushes(single = false) {
     let brushesToExport = brushLibrary;
-    if (single) {
-        brushesToExport = brushLibrary.filter(b => b.id === brushTip);
-        if (brushesToExport.length === 0) return;
-    }
-    
+    if (single) { brushesToExport = brushLibrary.filter(b => b.id === brushTip); if (brushesToExport.length === 0) return; }
     const dataToExport = brushesToExport.map(b => {
         const item = { id: b.id, type: b.type, name: b.name, mask: b.mask };
-        if (b.id === brushTip) {
-            item.settings = {
-                spacing: brushSettings.spacing,
-                hardness: brushSettings.hardness,
-                flow: brushSettings.flow,
-                scatter: brushSettings.scatter,
-                hueJitter: brushSettings.hueJitter,
-                satJitter: brushSettings.satJitter,
-                briJitter: brushSettings.briJitter,
-                jitterMode: brushSettings.jitterMode,
-                textureDensity: brushSettings.textureDensity
-            };
-        } else if (b.settings) {
-            item.settings = b.settings;
-        }
+        if (b.id === brushTip) { item.settings = { spacing: brushSettings.spacing, hardness: brushSettings.hardness, flow: brushSettings.flow, scatter: brushSettings.scatter, angleJitter: brushSettings.angleJitter, hueJitter: brushSettings.hueJitter, satJitter: brushSettings.satJitter, briJitter: brushSettings.briJitter, jitterMode: brushSettings.jitterMode, textureDensity: brushSettings.textureDensity, textureScale: brushSettings.textureScale }; } 
+        else if (b.settings) { item.settings = b.settings; }
         return item;
     });
-
-    const data = JSON.stringify(dataToExport);
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = single ? `${brushesToExport[0].name.replace(/\s+/g, '_')}.chromabrushes` : 'chroma_brushes.chromabrushes';
-    a.click();
-    URL.revokeObjectURL(url);
+    const data = JSON.stringify(dataToExport); const blob = new Blob([data], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = single ? `${brushesToExport[0].name.replace(/\s+/g, '_')}.chromabrushes` : 'chroma_brushes.chromabrushes'; a.click(); URL.revokeObjectURL(url);
     showToast(single ? "Brush Exported" : "Brushes Exported");
 }
 
@@ -1492,11 +1487,7 @@ function handleBrushTextureImport(e) {
     const reader = new FileReader();
     reader.onload = (event) => {
         const img = new Image();
-        img.onload = () => {
-            brushSettings.texture = img;
-            showToast("Texture Applied");
-            updateBrushPreview();
-        };
+        img.onload = () => { brushSettings.texture = img; showToast("Texture Applied"); updateBrushPreview(); };
         img.src = event.target.result;
     };
     reader.readAsDataURL(file);
@@ -1523,7 +1514,7 @@ function createNewBrushFromLayer() {
             if (alpha > 0) { if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y; found = true; }
         }
     }
-    if (!found) { showToast("Layer is empty. Paint something to make a brush!"); return; }
+    if (!found) { showToast("Layer is empty."); return; }
     const w = maxX - minX + 1; const h = maxY - minY + 1; const size = Math.max(w, h);
     const brushCanvas = document.createElement('canvas'); brushCanvas.width = brushCanvas.height = 256; const bctx = brushCanvas.getContext('2d');
     const scale = 256 / size; bctx.drawImage(layer.canvas, minX, minY, w, h, (256 - w * scale) / 2, (256 - h * scale) / 2, w * scale, h * scale);
@@ -1539,9 +1530,29 @@ function createNewBrushFromLayer() {
     brushTip = brushId; updateBrushTint(); renderBrushLibrary(); updateBrushPreview(); showToast("New Brush Created!");
 }
 
-function toggleTheme() { const isLight = document.body.classList.toggle('light-mode'); const toggleBtn = document.getElementById('themeToggle').querySelector('i'); if (isLight) toggleBtn.className = 'fas fa-sun'; else toggleBtn.className = 'fas fa-moon'; needsFullRedraw = true; }
-function togglePressure() { usePressure = !usePressure; const btn = document.getElementById('btn-pressure'); btn.classList.toggle('text-[#D38E3F]', usePressure); btn.classList.toggle('text-gray-500', !usePressure); updateBrushPreview(); }
-function togglePressureSize() { usePressureSize = !usePressureSize; const btn = document.getElementById('btn-pressure-size'); btn.classList.toggle('text-[#D38E3F]', usePressureSize); btn.classList.toggle('text-gray-500', !usePressureSize); updateBrushPreview(); }
+function toggleTheme() { 
+    const isLight = document.body.classList.toggle('light-mode'); 
+    const toggleBtn = document.getElementById('themeToggle').querySelector('i'); 
+    if (isLight) toggleBtn.className = 'fas fa-sun'; else toggleBtn.className = 'fas fa-moon'; 
+    renderBrushLibrary();
+    needsFullRedraw = true; 
+}
+
+function togglePressure() { 
+    usePressure = !usePressure; 
+    const btn = document.getElementById('btn-pressure'); 
+    btn.classList.toggle('text-[#D38E3F]', usePressure); 
+    btn.classList.toggle('text-gray-500', !usePressure); 
+    updateBrushPreview(); 
+}
+
+function togglePressureSize() { 
+    usePressureSize = !usePressureSize; 
+    const btn = document.getElementById('btn-pressure-size'); 
+    btn.classList.toggle('text-[#D38E3F]', usePressureSize); 
+    btn.classList.toggle('text-gray-500', !usePressureSize); 
+    updateBrushPreview(); 
+}
 
 function setActiveColorTarget(target) {
     activeColorTarget = target; colorPreview.classList.toggle('color-preview-active', target === 'primary'); secondaryColorPreview.classList.toggle('color-preview-active', target === 'secondary');
@@ -1564,7 +1575,36 @@ function updateViewport() {
 function updateBrushSize(val) { brushSize = Math.max(1, Math.min(300, parseInt(val))); document.getElementById('sizeSlider').value = brushSize; document.getElementById('sizeVal').innerText = brushSize + 'px'; updateBrushPreview(); }
 
 function setMode(m) {
+    // Save current settings before switching
+    if (mode === 'brush' || mode === 'eraser') {
+        toolSettings[mode].size = brushSize;
+        toolSettings[mode].opacity = opacity;
+        toolSettings[mode].tip = brushTip;
+        toolSettings[mode].settings = { ...brushSettings };
+    }
+
     mode = m;
+    
+    // Load tool specific settings
+    if (m === 'brush' || m === 'eraser') {
+        const settings = toolSettings[m];
+        brushSize = settings.size;
+        opacity = settings.opacity;
+        brushTip = settings.tip;
+        
+        // FIX: Ensure texture is explicitly cleared before loading new tool settings
+        brushSettings.texture = null;
+        Object.assign(brushSettings, settings.settings);
+        
+        // Update UI
+        document.getElementById('sizeSlider').value = brushSize;
+        document.getElementById('sizeVal').innerText = brushSize + 'px';
+        document.getElementById('opacitySlider').value = opacity * 100;
+        document.getElementById('opacityVal').innerText = Math.round(opacity * 100) + '%';
+        updateBrushUIFromSettings();
+        renderBrushLibrary();
+    }
+
     if (m === 'bucket' || m === 'gradient') lastBucketTool = m;
     if (m === 'lasso' || m === 'poly-lasso') lastLassoTool = m;
     if (m === 'rect' || m === 'ellipse' || m === 'line') lastShapeTool = m;
@@ -1574,25 +1614,8 @@ function setMode(m) {
         btn.classList.add('text-gray-500');
     });
 
-    const activeBtnId = {
-        'brush': 'btn-brush',
-        'eraser': 'btn-eraser',
-        'smudge': 'btn-smudge',
-        'bucket': 'btn-bucket',
-        'gradient': 'btn-bucket',
-        'lasso': 'btn-lasso',
-        'poly-lasso': 'btn-lasso',
-        'wand': 'btn-lasso',
-        'rect': 'btn-shapes',
-        'ellipse': 'btn-shapes',
-        'line': 'btn-shapes'
-    }[m];
-
-    if (activeBtnId) {
-        const btn = document.getElementById(activeBtnId);
-        btn.classList.add('active');
-        btn.classList.remove('text-gray-500');
-    }
+    const activeBtnId = { 'brush': 'btn-brush', 'eraser': 'btn-eraser', 'smudge': 'btn-smudge', 'bucket': 'btn-bucket', 'gradient': 'btn-bucket', 'lasso': 'btn-lasso', 'poly-lasso': 'btn-lasso', 'wand': 'btn-lasso', 'rect': 'btn-shapes', 'ellipse': 'btn-shapes', 'line': 'btn-shapes' }[m];
+    if (activeBtnId) { const btn = document.getElementById(activeBtnId); btn.classList.add('active'); btn.classList.remove('text-gray-500'); }
 
     if (m === 'bucket') document.getElementById('bucket-icon').className = 'fas fa-fill-drip';
     if (m === 'gradient') document.getElementById('bucket-icon').className = 'fas fa-stream';
@@ -1641,11 +1664,7 @@ function handleKeys(e) {
     if (e.key === 'Enter' && mode === 'poly-lasso') { e.preventDefault(); finishPolyLasso(); }
     if (e.key === 'Escape' && mode === 'poly-lasso') { e.preventDefault(); cancelPolyLasso(); }
     if (keyLow === 'b') setMode('brush'); if (keyLow === 'e') setMode('eraser'); if (keyLow === 's') setMode('smudge'); 
-    if (keyLow === 'l') { 
-        if (mode === 'lasso') setMode('poly-lasso'); 
-        else if (mode === 'poly-lasso') setMode('lasso'); 
-        else setMode(lastLassoTool); 
-    }
+    if (keyLow === 'l') { if (mode === 'lasso') setMode('poly-lasso'); else if (mode === 'poly-lasso') setMode('lasso'); else setMode(lastLassoTool); }
     if (keyLow === 'w') setMode('wand');
     if (keyLow === 'g') { if (mode === 'bucket') setMode('gradient'); else if (mode === 'gradient') setMode('bucket'); else setMode(lastBucketTool); }
     if (keyLow === 'x') { e.preventDefault(); swapColors(); }
@@ -1687,11 +1706,7 @@ function addLayer(name, isWhite = false) {
     saveUndo(); 
     const canvas = document.createElement('canvas'); canvas.width = INTERNAL_RES_W; canvas.height = INTERNAL_RES_H; const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (isWhite) { ctx.fillStyle = 'white'; ctx.fillRect(0, 0, INTERNAL_RES_W, INTERNAL_RES_H); }
-    
-    // Auto-nest into current folder if one is active
-    const activeLayer = layers[activeIdx];
-    const parentId = (activeLayer && activeLayer.type === 'group') ? activeLayer.id : (activeLayer ? activeLayer.parentId : null);
-    
+    const activeLayer = layers[activeIdx]; const parentId = (activeLayer && activeLayer.type === 'group') ? activeLayer.id : (activeLayer ? activeLayer.parentId : null);
     const layer = { id: Date.now() + Math.random(), type: 'layer', name: name || `Layer ${layers.length + 1}`, canvas, ctx, visible: true, alphaLocked: false, locked: false, clippingMask: false, blendMode: 'source-over', opacity: 1.0, maskCanvas: null, maskCtx: null, parentId: parentId, expanded: true };
     layers.splice(activeIdx, 0, layer); refreshUI(); needsFullRedraw = true;
 }
@@ -1699,9 +1714,7 @@ function addLayer(name, isWhite = false) {
 function addGroup() {
     saveUndo();
     const group = { id: Date.now() + Math.random(), type: 'group', name: 'Folder', visible: true, opacity: 1.0, blendMode: 'source-over', clippingMask: false, parentId: null, expanded: true };
-    layers.splice(activeIdx, 0, group);
-    refreshUI();
-    needsFullRedraw = true;
+    layers.splice(activeIdx, 0, group); refreshUI(); needsFullRedraw = true;
 }
 
 function duplicateLayer() {
@@ -1717,7 +1730,6 @@ function mergeDown() {
     if (activeIdx >= layers.length - 1) return; 
     const top = layers[activeIdx]; const bottom = layers[activeIdx + 1];
     if (top.type === 'group' || bottom.type === 'group') { showToast("Cannot merge folder directly yet."); return; }
-    
     saveUndo(); const temp = document.createElement('canvas'); temp.width = INTERNAL_RES_W; temp.height = INTERNAL_RES_H; const tctx = temp.getContext('2d');
     const buffer = document.createElement('canvas'); buffer.width = INTERNAL_RES_W; buffer.height = INTERNAL_RES_H; const bctx = buffer.getContext('2d');
     bctx.drawImage(top.canvas, 0, 0);
@@ -1738,15 +1750,9 @@ function addLayerMask() {
 
 function deleteLayer(i, e) { 
     e.stopPropagation(); saveUndo(); 
-    const item = layers[i];
-    if (item.type === 'group') {
-        // Delete group and all children
-        layers = layers.filter(l => l.parentId !== item.id);
-    }
-    layers.splice(i, 1); 
-    if (layers.length === 0) addLayer('Layer 1'); 
-    if (activeIdx >= layers.length) activeIdx = layers.length - 1; 
-    activeIdx = Math.max(0, activeIdx); 
+    const item = layers[i]; if (item.type === 'group') { layers = layers.filter(l => l.parentId !== item.id); }
+    layers.splice(i, 1); if (layers.length === 0) addLayer('Layer 1'); 
+    if (activeIdx >= layers.length) activeIdx = layers.length - 1; activeIdx = Math.max(0, activeIdx); 
     refreshUI(); needsFullRedraw = true; 
 }
 
@@ -1763,74 +1769,28 @@ function startRename(i, e) { e.stopPropagation(); const span = e.target; const i
 
 function onGlobalReorderMove(e) { 
     if (draggedIdx === null) return; 
-    const targetEl = document.elementFromPoint(e.clientX, e.clientY); 
-    const item = targetEl?.closest('.layer-item'); 
-    
-    // Clear drop target highlighting
+    const targetEl = document.elementFromPoint(e.clientX, e.clientY); const item = targetEl?.closest('.layer-item'); 
     document.querySelectorAll('.layer-item').forEach(el => el.classList.remove('drop-target'));
-
     if (item) { 
-        const hoverIdx = parseInt(item.dataset.index); 
-        if (isNaN(hoverIdx)) return;
-
+        const hoverIdx = parseInt(item.dataset.index); if (isNaN(hoverIdx)) return;
         const targetLayer = layers[hoverIdx];
-        
-        // Visual feedback for dropping into folder
-        if (targetLayer.type === 'group' && hoverIdx !== draggedIdx) {
-            item.classList.add('drop-target');
-            dropIdx = hoverIdx;
-        } else {
-            dropIdx = null;
-        }
-
-        // Standard reordering logic (only if not trying to drop into current folder target)
-        if (!dropIdx && hoverIdx !== draggedIdx) {
-            const temp = layers.splice(draggedIdx, 1)[0]; 
-            layers.splice(hoverIdx, 0, temp); 
-            draggedIdx = hoverIdx; 
-            activeIdx = hoverIdx; 
-            refreshUI(); 
-        }
+        if (targetLayer.type === 'group' && hoverIdx !== draggedIdx) { item.classList.add('drop-target'); dropIdx = hoverIdx; } else { dropIdx = null; }
+        if (!dropIdx && hoverIdx !== draggedIdx) { const temp = layers.splice(draggedIdx, 1)[0]; layers.splice(hoverIdx, 0, temp); draggedIdx = hoverIdx; activeIdx = hoverIdx; refreshUI(); }
     } 
 }
 
 function onGlobalReorderUp() { 
     if (draggedIdx !== null) { 
         saveUndo();
-        
         if (dropIdx !== null) {
-            // Nest into folder logic
-            const draggedLayer = layers[draggedIdx];
-            const targetGroup = layers[dropIdx];
-            
-            // Prevent nesting folder into itself or its children
-            let isRecursive = false;
-            let p = targetGroup.parentId;
-            while(p) {
-                if (p === draggedLayer.id) { isRecursive = true; break; }
-                const parentLayer = layers.find(l => l.id === p);
-                p = parentLayer ? parentLayer.parentId : null;
-            }
-
+            const draggedLayer = layers[draggedIdx]; const targetGroup = layers[dropIdx];
+            let isRecursive = false; let p = targetGroup.parentId; while(p) { if (p === draggedLayer.id) { isRecursive = true; break; } const parentLayer = layers.find(l => l.id === p); p = parentLayer ? parentLayer.parentId : null; }
             if (!isRecursive && targetGroup.id !== draggedLayer.id) {
-                draggedLayer.parentId = targetGroup.id;
-                targetGroup.expanded = true; // Auto-expand when adding item
-                
-                // Move layer physically in array to be just after folder start
-                const item = layers.splice(draggedIdx, 1)[0];
-                const newTargetIdx = layers.indexOf(targetGroup);
-                layers.splice(newTargetIdx + 1, 0, item);
-                activeIdx = newTargetIdx + 1;
+                draggedLayer.parentId = targetGroup.id; targetGroup.expanded = true;
+                const item = layers.splice(draggedIdx, 1)[0]; const newTargetIdx = layers.indexOf(targetGroup); layers.splice(newTargetIdx + 1, 0, item); activeIdx = newTargetIdx + 1;
             }
-        } else {
-            // Dragged to root logic
-            // Simple approach: if dragged to very top/bottom of list, maybe clear parent.
         }
-
-        draggedIdx = null; 
-        dropIdx = null;
-        refreshUI(); 
-        needsFullRedraw = true; 
+        draggedIdx = null; dropIdx = null; refreshUI(); needsFullRedraw = true; 
     } 
 }
 
@@ -1840,81 +1800,26 @@ function toggleClipping(i, e) { e?.stopPropagation(); if (i === layers.length - 
 function setBlendMode(i, mode) { saveUndo(); layers[i].blendMode = mode; needsFullRedraw = true; }
 function updateLayerOpacity(i, val) { layers[i].opacity = val / 100; needsFullRedraw = true; }
 function toggleVis(i, e) { e.stopPropagation(); saveUndo(); layers[i].visible = !layers[i].visible; refreshUI(); needsFullRedraw = true; }
-
-function toggleGroupExpanded(i, e) {
-    e.stopPropagation();
-    layers[i].expanded = !layers[i].expanded;
-    refreshUI();
-}
+function toggleGroupExpanded(i, e) { e.stopPropagation(); layers[i].expanded = !layers[i].expanded; refreshUI(); }
 
 function refreshUI() {
     const currentScroll = list.scrollTop; list.innerHTML = '';
-    
     const buildListRecursive = (parentId = null, depth = 0) => {
         layers.forEach((l, i) => {
             if (l.parentId !== parentId) return;
-            
-            const isActive = i === activeIdx; const el = document.createElement('div');
-            el.dataset.index = i;
+            const isActive = i === activeIdx; const el = document.createElement('div'); el.dataset.index = i;
             el.className = `layer-item group p-3 rounded-xl flex flex-col gap-2 transition-all cursor-pointer ${isActive ? 'active' : 'hover:bg-black/5 dark:hover:bg-white/5'} ${l.clippingMask ? 'clipping-indent' : ''} ${i === draggedIdx ? 'dragging-visual' : ''} ${depth > 0 ? 'group-indent' : ''} ${l.type === 'group' ? 'group-header-row' : ''}`;
-            
-            el.addEventListener('pointerdown', (e) => { 
-                if (e.target.closest('.vis-toggle') || e.target.closest('button') || e.target.closest('input') || e.target.closest('select') || e.target.closest('.mask-target') || e.target.closest('.expand-toggle')) return; 
-                draggedIdx = i; activeIdx = i; isMaskActive = false; el.setPointerCapture(e.pointerId); refreshUI(); 
-            });
-            
+            el.addEventListener('pointerdown', (e) => { if (e.target.closest('.vis-toggle') || e.target.closest('button') || e.target.closest('input') || e.target.closest('select') || e.target.closest('.mask-target') || e.target.closest('.expand-toggle')) return; draggedIdx = i; activeIdx = i; isMaskActive = false; el.setPointerCapture(e.pointerId); refreshUI(); });
             const blendOptions = BLEND_MODES.map(m => `<option value="${m.value}" ${l.blendMode === m.value ? 'selected' : ''}>${m.label}</option>`).join('');
             const maskHtml = (l.maskCanvas && l.type !== 'group') ? `<div onclick="isMaskActive = true; activeIdx = ${i}; refreshUI(); event.stopPropagation()" class="mask-target w-6 h-6 rounded border ${isMaskActive && isActive ? 'border-[#D38E3F] border-2' : 'border-white/10'} bg-black overflow-hidden flex-shrink-0 cursor-pointer ml-1"><canvas id="mthumb-${i}" class="w-full h-full opacity-80"></canvas></div>` : '';
-            
-            const isGroup = l.type === 'group';
-            const icon = isGroup ? (l.expanded ? 'fa-folder-open' : 'fa-folder') : 'fa-image';
+            const isGroup = l.type === 'group'; const icon = isGroup ? (l.expanded ? 'fa-folder-open' : 'fa-folder') : 'fa-image';
             const expandBtn = isGroup ? `<button class="expand-toggle text-[8px] text-gray-500 w-3" onclick="toggleGroupExpanded(${i}, event)"><i class="fas ${l.expanded ? 'fa-chevron-down' : 'fa-chevron-right'}"></i></button>` : `<div class="w-3"></div>`;
-            
-            el.innerHTML = `
-                <div class="flex items-center gap-2">
-                    <div class="vis-toggle text-[10px] text-gray-500 w-4 flex items-center justify-center" onclick="toggleVis(${i}, event)">
-                        <i class="fas ${l.visible ? 'fa-eye' : 'fa-eye-slash'}"></i>
-                    </div>
-                    <div class="flex-1 min-w-0 flex items-center gap-1">
-                        ${expandBtn}
-                        <div class="w-6 h-6 rounded border ${!isMaskActive && isActive ? 'border-[#D38E3F] border-2' : 'border-white/10'} bg-white/10 overflow-hidden flex-shrink-0 flex items-center justify-center">
-                            ${isGroup ? `<i class="fas ${icon} text-[#D38E3F] text-[10px]"></i>` : `<canvas id="lthumb-${i}" class="w-full h-full"></canvas>`}
-                        </div>
-                        ${maskHtml}
-                        <span class="layer-name text-[10px] font-bold truncate block ${isActive ? '' : 'text-gray-400'}" ondblclick="startRename(${i}, event)">${l.name}</span>
-                    </div>
-                    <button onclick="deleteLayer(${i}, event)" class="text-gray-600 hover:text-red-500 transition-all ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}">
-                        <i class="fas fa-trash text-[10px]"></i>
-                    </button>
-                </div>
-                ${isActive ? `
-                <div class="flex items-center gap-2" onclick="event.stopPropagation()">
-                    <span class="text-[8px] text-gray-500 uppercase font-bold">Op</span>
-                    <input type="range" min="0" max="100" value="${l.opacity * 100}" class="layer-opacity-slider" onpointerdown="saveUndo()" oninput="updateLayerOpacity(${i}, this.value)">
-                    <span class="text-[8px] text-gray-500 w-6 font-mono">${Math.round(l.opacity * 100)}</span>
-                </div>
-                <div class="flex items-center justify-between gap-2">
-                    <select onchange="setBlendMode(${i}, this.value)" class="flex-1" onclick="event.stopPropagation()">${blendOptions}</select>
-                    <div class="flex gap-1">
-                        ${!isGroup ? `<button onclick="toggleAlphaLock(${i}, event)" class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded ${l.alphaLocked ? 'bg-[#D38E3F]/20 text-[#D38E3F]' : 'text-gray-600'}">Alpha</button>` : ''}
-                        <button onclick="toggleLayerLock(${i}, event)" class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded ${l.locked ? 'bg-red-500/20 text-red-500' : 'text-gray-600'}">Lock</button>
-                        <button onclick="toggleClipping(${i}, event)" class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded ${l.clippingMask ? 'bg-[#D38E3F]/20 text-[#D38E3F]' : 'text-gray-600'}">Clip</button>
-                    </div>
-                </div>` : ''}
-            `;
-            
-            list.appendChild(el);
-            const lth = document.getElementById(`lthumb-${i}`); if (lth && l.canvas) lth.getContext('2d').drawImage(l.canvas, 0, 0, lth.width, lth.height);
-            const mth = document.getElementById(`mthumb-${i}`); if (mth && l.maskCanvas) mth.getContext('2d').drawImage(l.maskCanvas, 0, 0, mth.width, mth.height);
-            
-            if (isGroup && l.expanded) {
-                buildListRecursive(l.id, depth + 1);
-            }
+            el.innerHTML = `<div class="flex items-center gap-2"><div class="vis-toggle text-[10px] text-gray-500 w-4 flex items-center justify-center" onclick="toggleVis(${i}, event)"><i class="fas ${l.visible ? 'fa-eye' : 'fa-eye-slash'}"></i></div><div class="flex-1 min-w-0 flex items-center gap-1">${expandBtn}<div class="w-6 h-6 rounded border ${!isMaskActive && isActive ? 'border-[#D38E3F] border-2' : 'border-white/10'} bg-white/10 overflow-hidden flex-shrink-0 flex items-center justify-center">${isGroup ? `<i class="fas ${icon} text-[#D38E3F] text-[10px]"></i>` : `<canvas id="lthumb-${i}" class="w-full h-full"></canvas>`}</div>${maskHtml}<span class="layer-name text-[10px] font-bold truncate block ${isActive ? '' : 'text-gray-400'}" ondblclick="startRename(${i}, event)">${l.name}</span></div><button onclick="deleteLayer(${i}, event)" class="text-gray-600 hover:text-red-500 transition-all ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}"><i class="fas fa-trash text-[10px]"></i></button></div>${isActive ? `<div class="flex items-center gap-2" onclick="event.stopPropagation()"><span class="text-[8px] text-gray-500 uppercase font-bold">Op</span><input type="range" min="0" max="100" value="${l.opacity * 100}" class="layer-opacity-slider" onpointerdown="saveUndo()" oninput="updateLayerOpacity(${i}, this.value)"><span class="text-[8px] text-gray-500 w-6 font-mono">${Math.round(l.opacity * 100)}</span></div><div class="flex items-center justify-between gap-2"><select onchange="setBlendMode(${i}, this.value)" class="flex-1" onclick="event.stopPropagation()">${blendOptions}</select><div class="flex gap-1">${!isGroup ? `<button onclick="toggleAlphaLock(${i}, event)" class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded ${l.alphaLocked ? 'bg-[#D38E3F]/20 text-[#D38E3F]' : 'text-gray-600'}">Alpha</button>` : ''}<button onclick="toggleLayerLock(${i}, event)" class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded ${l.locked ? 'bg-red-500/20 text-red-500' : 'text-gray-600'}">Lock</button><button onclick="toggleClipping(${i}, event)" class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded ${l.clippingMask ? 'bg-[#D38E3F]/20 text-[#D38E3F]' : 'text-gray-600'}">Clip</button></div></div>` : ''}`;
+            list.appendChild(el); const lth = document.getElementById(`lthumb-${i}`); if (lth && l.canvas) lth.getContext('2d').drawImage(l.canvas, 0, 0, lth.width, lth.height); const mth = document.getElementById(`mthumb-${i}`); if (mth && l.maskCanvas) mth.getContext('2d').drawImage(l.maskCanvas, 0, 0, mth.width, mth.height);
+            if (isGroup && l.expanded) { buildListRecursive(l.id, depth + 1); }
         });
     };
-    
-    buildListRecursive(null, 0);
-    list.scrollTop = currentScroll;
+    buildListRecursive(null, 0); list.scrollTop = currentScroll;
 }
 
 function findClippingBase(i) { for (let j = i + 1; j < layers.length; j++) { if (!layers[j].clippingMask) return layers[j]; } return null; }
@@ -1926,22 +1831,14 @@ function renderStack(dirtyRect = null) {
         rw = Math.min(INTERNAL_RES_W - rx, Math.ceil(dirtyRect.w)); rh = Math.min(INTERNAL_RES_H - ry, Math.ceil(dirtyRect.h));
         if (rw <= 0 || rh <= 0) return;
         displayCtx.clearRect(rx, ry, rw, rh);
-    } else {
-        displayCtx.clearRect(0, 0, INTERNAL_RES_W, INTERNAL_RES_H);
-    }
-
+    } else { displayCtx.clearRect(0, 0, INTERNAL_RES_W, INTERNAL_RES_H); }
     const drawItemRecursive = (parentId = null, targetCtx) => {
         const items = layers.filter(l => l.parentId === parentId);
         for (let j = items.length - 1; j >= 0; j--) {
-            const layer = items[j]; if (!layer.visible) continue;
-            const i = layers.indexOf(layer);
-            
-            const itemBuffer = document.createElement('canvas'); itemBuffer.width = INTERNAL_RES_W; itemBuffer.height = INTERNAL_RES_H;
-            const bctx = itemBuffer.getContext('2d');
-            
-            if (layer.type === 'group') {
-                drawItemRecursive(layer.id, bctx);
-            } else {
+            const layer = items[j]; if (!layer.visible) continue; const i = layers.indexOf(layer);
+            const itemBuffer = document.createElement('canvas'); itemBuffer.width = INTERNAL_RES_W; itemBuffer.height = INTERNAL_RES_H; const bctx = itemBuffer.getContext('2d');
+            if (layer.type === 'group') { drawItemRecursive(layer.id, bctx); } 
+            else {
                 bctx.drawImage(layer.canvas, 0, 0);
                 if (isPainting && i === activeIdx && !isMaskActive) {
                     const strokeBuffer = document.createElement('canvas'); strokeBuffer.width = INTERNAL_RES_W; strokeBuffer.height = INTERNAL_RES_H;
@@ -1951,11 +1848,9 @@ function renderStack(dirtyRect = null) {
                     bctx.drawImage(strokeBuffer, 0, 0);
                 }
                 if (isTransforming && i === activeIdx) {
-                    bctx.clearRect(0, 0, INTERNAL_RES_W, INTERNAL_RES_H);
-                    bctx.save();
+                    bctx.clearRect(0, 0, INTERNAL_RES_W, INTERNAL_RES_H); bctx.save();
                     bctx.translate(transformState.x, transformState.y); bctx.rotate(transformState.rotation); bctx.scale(transformState.scale, transformState.scale);
-                    bctx.drawImage(transformState.originalCanvas, -INTERNAL_RES_W/2, -INTERNAL_RES_H/2);
-                    bctx.restore();
+                    bctx.drawImage(transformState.originalCanvas, -INTERNAL_RES_W/2, -INTERNAL_RES_H/2); bctx.restore();
                 }
                 if (layer.maskCanvas) {
                     const maskBuffer = document.createElement('canvas'); maskBuffer.width = INTERNAL_RES_W; maskBuffer.height = INTERNAL_RES_H;
@@ -1969,76 +1864,33 @@ function renderStack(dirtyRect = null) {
                     bctx.globalCompositeOperation = 'destination-in'; bctx.drawImage(maskBuffer, 0, 0);
                 }
             }
-            
-            if (layer.clippingMask) {
-                const base = findClippingBase(i);
-                if (base && base.canvas) {
-                    bctx.globalCompositeOperation = 'destination-in';
-                    bctx.drawImage(base.canvas, 0, 0);
-                }
-            }
-
-            targetCtx.save();
-            targetCtx.globalAlpha = layer.opacity;
-            targetCtx.globalCompositeOperation = layer.blendMode;
-            targetCtx.drawImage(itemBuffer, rx, ry, rw, rh, rx, ry, rw, rh);
-            targetCtx.restore();
+            if (layer.clippingMask) { const base = findClippingBase(i); if (base && base.canvas) { bctx.globalCompositeOperation = 'destination-in'; bctx.drawImage(base.canvas, 0, 0); } }
+            targetCtx.save(); targetCtx.globalAlpha = layer.opacity; targetCtx.globalCompositeOperation = layer.blendMode; targetCtx.drawImage(itemBuffer, rx, ry, rw, rh, rx, ry, rw, rh); targetCtx.restore();
         }
     };
-
-    drawItemRecursive(null, displayCtx);
-    updateRefCanvas();
-}
-
-function smoothPoints(pts) {
-    if (pts.length < 3) return pts;
-    const smoothed = [pts[0]];
-    for (let i = 1; i < pts.length - 1; i++) {
-        smoothed.push({
-            x: (pts[i-1].x + pts[i].x + pts[i+1].x) / 3,
-            y: (pts[i-1].y + pts[i].y + pts[i+1].y) / 3
-        });
-    }
-    smoothed.push(pts[pts.length - 1]);
-    return smoothed;
+    drawItemRecursive(null, displayCtx); updateRefCanvas();
 }
 
 function start(e) {
     if (e.pointerType === 'pen' || e.pointerType === 'mouse') { stack.setPointerCapture(e.pointerId); }
     if (isSpaceDown) { isPanning = true; panMouseX = e.clientX; panMouseY = e.clientY; stack.style.cursor = 'grabbing'; return; }
-    
-    const layer = layers[activeIdx];
-    if (layer && layer.locked && mode !== 'lasso' && mode !== 'poly-lasso' && mode !== 'wand') return;
-    if (layer && layer.type === 'group' && !['lasso', 'poly-lasso', 'wand'].includes(mode)) return;
-
-    const pos = getPos(e); 
-    lastX = pos.x; lastY = pos.y; lastInputX = pos.x; lastInputY = pos.y;
+    const layer = layers[activeIdx]; if (layer && layer.locked && mode !== 'lasso' && mode !== 'poly-lasso' && mode !== 'wand') return; if (layer && layer.type === 'group' && !['lasso', 'poly-lasso', 'wand'].includes(mode)) return;
+    const pos = getPos(e); lastX = pos.x; lastY = pos.y; lastInputX = pos.x; lastInputY = pos.y;
     lastPressure = (e.pressure !== undefined && e.pressure > 0) ? e.pressure : 1.0;
-    
-    // Smooth Engine: Init stroke history for spline interpolation
     strokeHistory = [{ x: pos.x, y: pos.y, p: lastPressure }];
     brushSettings.lastDabX = pos.x; brushSettings.lastDabY = pos.y; brushSettings.distSinceLastDab = 0;
-    
     strokeStartPos = { ...pos }; lockAxis = null;
     if (brushSettings.jitterMode === 'stroke') { brushSettings.strokeHueOffset = (Math.random() - 0.5) * brushSettings.hueJitter * 360; brushSettings.strokeSatOffset = (Math.random() - 0.5) * brushSettings.satJitter * 100; brushSettings.strokeBriOffset = (Math.random() - 0.5) * brushSettings.briJitter * 100; }
-    
     if (isAltDown && !isPainting && mode !== 'lasso' && mode !== 'poly-lasso' && mode !== 'wand' && (mode === 'brush' || mode === 'bucket' || mode === 'gradient')) { sampleColorAt(pos); return; }
-    
     if (isTransforming) { const handle = getTransformHandle(pos.x, pos.y); transformState.activeHandle = handle; transformState.startMouse = { x: pos.x, y: pos.y }; transformState.initialState = { ...transformState }; return; }
-    
     if (mode === 'wand') { magicWandSelection(pos); }
     else if (mode === 'bucket') { saveUndo(); floodFill(pos.x, pos.y); }
     else if (mode === 'gradient') { isPainting = true; gradStart = pos; }
     else if (mode === 'lasso' || mode === 'poly-lasso') { isPainting = true; lassoPoints = [pos]; lassoOp = isShiftDown ? 'add' : (isAltDown ? 'sub' : 'new'); }
     else if (mode === 'rect' || mode === 'ellipse' || mode === 'line') { isPainting = true; saveUndo(); activeStrokeCtx.clearRect(0, 0, INTERNAL_RES_W, INTERNAL_RES_H); gradStart = pos; }
     else { 
-        isPainting = true; 
-        saveUndo(); 
-        activeStrokeCtx.clearRect(0,0,INTERNAL_RES_W, INTERNAL_RES_H); 
-        if (mode === 'smudge') { 
-            smudgeBuffer = document.createElement('canvas'); smudgeBuffer.width = smudgeBuffer.height = brushSize; 
-            const sctx = smudgeBuffer.getContext('2d'); sctx.save(); sctx.beginPath(); sctx.arc(brushSize/2, brushSize/2, brushSize/2, 0, Math.PI*2); sctx.clip(); sctx.drawImage(layers[activeIdx].canvas, pos.x - brushSize/2, pos.y - brushSize/2, brushSize, brushSize, 0, 0, brushSize, brushSize); sctx.restore(); 
-        } 
+        isPainting = true; saveUndo(); activeStrokeCtx.clearRect(0,0,INTERNAL_RES_W, INTERNAL_RES_H); 
+        if (mode === 'smudge') { smudgeBuffer = document.createElement('canvas'); smudgeBuffer.width = smudgeBuffer.height = brushSize; const sctx = smudgeBuffer.getContext('2d'); sctx.save(); sctx.beginPath(); sctx.arc(brushSize/2, brushSize/2, brushSize/2, 0, Math.PI*2); sctx.clip(); sctx.drawImage(layers[activeIdx].canvas, pos.x - brushSize/2, pos.y - brushSize/2, brushSize, brushSize, 0, 0, brushSize, brushSize); sctx.restore(); } 
         draw_impl(pos, e.pressure); 
     }
 }
@@ -2049,11 +1901,12 @@ function move(e) {
     if (isPainting && isShiftDown && strokeStartPos && !['lasso', 'poly-lasso', 'wand', 'rect', 'ellipse', 'line'].includes(mode)) { if (lockAxis === null) { const dx = Math.abs(pos.x - strokeStartPos.x); const dy = Math.abs(pos.y - strokeStartPos.y); if (dx > 10 || dy > 10) { lockAxis = dx > dy ? 'h' : 'v'; } } if (lockAxis === 'h') pos.y = strokeStartPos.y; if (lockAxis === 'v') pos.x = strokeStartPos.x; }
     if (isAltDown && isPainting && !isMaskActive && mode !== 'lasso' && mode !== 'poly-lasso' && mode !== 'wand') sampleColorAt(pos);
     if (isTransforming) { if (transformState.activeHandle) { updateTransform(pos); needsFullRedraw = true; } else hoveredHandle = getTransformHandle(pos.x, pos.y); }
-    else if (isPainting) { if (mode === 'gradient') { updateCursor(pos); } 
-    else if (mode === 'lasso' || mode === 'poly-lasso') { lassoPoints.push(pos); updateCursor(pos); }
-    else if (mode === 'rect' || mode === 'ellipse' || mode === 'line') { drawShapePreview(pos); needsFullRedraw = true; }
-    else if (mode !== 'wand') { draw_impl(pos, e.pressure); } }
-    else { updateCursor(pos); }
+    else if (isPainting) { 
+        if (mode === 'gradient') { updateCursor(pos); } 
+        else if (mode === 'lasso' || mode === 'poly-lasso') { lassoPoints.push(pos); updateCursor(pos); }
+        else if (mode === 'rect' || mode === 'ellipse' || mode === 'line') { drawShapePreview(pos); needsFullRedraw = true; }
+        else if (mode !== 'wand') { draw_impl(pos, e.pressure); } 
+    } else { updateCursor(pos); }
     lastInputX = pos.x; lastInputY = pos.y;
 }
 
@@ -2061,15 +1914,9 @@ function stop(e) {
     if (isPanning) { isPanning = false; stack.style.cursor = isSpaceDown ? 'grab' : (isTransforming ? 'crosshair' : 'none'); return; }
     if (isTransforming) transformState.activeHandle = null;
     if (isPainting) { 
-        if (mode === 'gradient') { const pos = getPos(e); applyGradient(gradStart, pos); gradStart = null; isPainting = false; } 
+        if (mode === 'gradient') { applyGradient(gradStart, getPos(e)); gradStart = null; isPainting = false; } 
         else if (mode === 'lasso' || mode === 'poly-lasso') { 
-            if (lassoPoints.length > 3) { 
-                let processedPoints = lassoPoints;
-                for(let i = 0; i < 3; i++) { processedPoints = smoothPoints(processedPoints); }
-                if (lassoOp === 'new') activeSelectionPoints = []; 
-                activeSelectionPoints.push({pts: processedPoints, op: lassoOp}); 
-                generateMask(); 
-            } 
+            if (lassoPoints.length > 3) { if (lassoOp === 'new') activeSelectionPoints = []; activeSelectionPoints.push({pts: [...lassoPoints], op: lassoOp}); generateMask(); } 
             lassoPoints = []; isPainting = false; 
         } 
         else if (mode === 'rect' || mode === 'ellipse' || mode === 'line') { commitActiveStroke(); gradStart = null; isPainting = false; }
@@ -2085,50 +1932,29 @@ function generateMask() {
     activeSelectionPoints.forEach(path => {
         maskCtx.globalCompositeOperation = (path.op === 'sub') ? 'destination-out' : 'source-over';
         maskCtx.fillStyle = 'white';
-        if (path.pts) {
-            maskCtx.beginPath(); maskCtx.moveTo(path.pts[0].x, path.pts[0].y);
-            for (let i = 1; i < path.pts.length; i++) { maskCtx.lineTo(path.pts[i].x, path.pts[i].y); }
-            maskCtx.closePath(); maskCtx.fill();
-        } else if (path.bitmap) {
-            maskCtx.drawImage(path.bitmap, 0, 0);
-        }
+        if (path.pts) { maskCtx.beginPath(); maskCtx.moveTo(path.pts[0].x, path.pts[0].y); for (let i = 1; i < path.pts.length; i++) { maskCtx.lineTo(path.pts[i].x, path.pts[i].y); } maskCtx.closePath(); maskCtx.fill(); } 
+        else if (path.bitmap) { maskCtx.drawImage(path.bitmap, 0, 0); }
     });
-    maskCtx.restore();
-    document.getElementById('selectionGlobalUI').classList.replace('hidden', 'flex');
-    needsFullRedraw = true;
+    maskCtx.restore(); document.getElementById('selectionGlobalUI').classList.replace('hidden', 'flex'); needsFullRedraw = true;
 }
 
 function magicWandSelection(pos) {
     const layer = layers[activeIdx]; if (!layer || layer.type === 'group') return;
-    const px = Math.floor(pos.x); const py = Math.floor(pos.y);
-    if (px < 0 || px >= INTERNAL_RES_W || py < 0 || py >= INTERNAL_RES_H) return;
-    const imgData = layer.ctx.getImageData(0, 0, INTERNAL_RES_W, INTERNAL_RES_H);
-    const data = imgData.data;
-    const startIdx = (py * INTERNAL_RES_W + px) * 4;
-    const startR = data[startIdx], startG = data[startIdx+1], startB = data[startIdx+2], startA = data[startIdx+3];
-    const visited = new Uint8Array(INTERNAL_RES_W * INTERNAL_RES_H);
-    const floodStack = [[px, py]];
+    const px = Math.floor(pos.x); const py = Math.floor(pos.y); if (px < 0 || px >= INTERNAL_RES_W || py < 0 || py >= INTERNAL_RES_H) return;
+    const imgData = layer.ctx.getImageData(0, 0, INTERNAL_RES_W, INTERNAL_RES_H); const data = imgData.data;
+    const startIdx = (py * INTERNAL_RES_W + px) * 4; const startR = data[startIdx], startG = data[startIdx+1], startB = data[startIdx+2], startA = data[startIdx+3];
+    const visited = new Uint8Array(INTERNAL_RES_W * INTERNAL_RES_H); const floodStack = [[px, py]];
     const selectionCanvas = document.createElement('canvas'); selectionCanvas.width = INTERNAL_RES_W; selectionCanvas.height = INTERNAL_RES_H;
-    const sctx = selectionCanvas.getContext('2d');
-    const sData = sctx.createImageData(INTERNAL_RES_W, INTERNAL_RES_H);
+    const sctx = selectionCanvas.getContext('2d'); const sData = sctx.createImageData(INTERNAL_RES_W, INTERNAL_RES_H);
     while (floodStack.length > 0) {
-        const [x, y] = floodStack.pop();
-        const idx = y * INTERNAL_RES_W + x;
+        const [x, y] = floodStack.pop(); const idx = y * INTERNAL_RES_W + x;
         if (x < 0 || x >= INTERNAL_RES_W || y < 0 || y >= INTERNAL_RES_H || visited[idx]) continue;
-        const pIdx = idx * 4;
-        const r = data[pIdx], g = data[pIdx+1], b = data[pIdx+2], a = data[pIdx+3];
+        const pIdx = idx * 4; const r = data[pIdx], g = data[pIdx+1], b = data[pIdx+2], a = data[pIdx+3];
         const diff = Math.sqrt(Math.pow(r - startR, 2) + Math.pow(g - startG, 2) + Math.pow(b - startB, 2) + Math.pow(a - startA, 2));
-        if (diff <= wandTolerance) {
-            visited[idx] = 1;
-            sData.data[pIdx] = 255; sData.data[pIdx+1] = 255; sData.data[pIdx+2] = 255; sData.data[pIdx+3] = 255;
-            floodStack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
-        }
+        if (diff <= wandTolerance) { visited[idx] = 1; sData.data[pIdx] = 255; sData.data[pIdx+1] = 255; sData.data[pIdx+2] = 255; sData.data[pIdx+3] = 255; floodStack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]); }
     }
-    sctx.putImageData(sData, 0, 0);
-    const op = isShiftDown ? 'add' : (isAltDown ? 'sub' : 'new');
-    if (op === 'new') activeSelectionPoints = [];
-    activeSelectionPoints.push({ bitmap: selectionCanvas, op: op });
-    generateMask();
+    sctx.putImageData(sData, 0, 0); const op = isShiftDown ? 'add' : (isAltDown ? 'sub' : 'new');
+    if (op === 'new') activeSelectionPoints = []; activeSelectionPoints.push({ bitmap: selectionCanvas, op: op }); generateMask();
 }
 
 function applySelectionMask(targetCtx) { if (activeSelectionPoints.length === 0) return; targetCtx.save(); targetCtx.globalCompositeOperation = 'destination-in'; targetCtx.drawImage(maskCanvas, 0, 0); targetCtx.restore(); }
@@ -2142,12 +1968,9 @@ function applyGradient(start, end) {
 }
 
 function getPos(e) {
-    const rect = stack.getBoundingClientRect();
-    const sFactor = rect.width / INTERNAL_RES_W;
-    let ix = (e.clientX - rect.left) / sFactor;
-    let iy = (e.clientY - rect.top) / sFactor;
-    if (flipH) ix = INTERNAL_RES_W - ix;
-    return { x: ix, y: iy, rawX: e.clientX, rawY: e.clientY };
+    const rect = stack.getBoundingClientRect(); const sFactor = rect.width / INTERNAL_RES_W;
+    let ix = (e.clientX - rect.left) / sFactor; let iy = (e.clientY - rect.top) / sFactor;
+    if (flipH) ix = INTERNAL_RES_W - ix; return { x: ix, y: iy, rawX: e.clientX, rawY: e.clientY };
 }
 
 function getTransformHandle(x, y) {
@@ -2165,42 +1988,15 @@ function updateCursor(pos) {
     if (!pos) return; curCtx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
     const targetEl = document.elementFromPoint(pos.rawX, pos.rawY); if (targetEl && (targetEl.closest('.ui-panel') || targetEl.closest('.draggable-panel') || targetEl.closest('#modalOverlay'))) return;
     const vRect = viewport.getBoundingClientRect(); const sRect = stack.getBoundingClientRect();
-    function project(ix, iy) { 
-        const centerX = sRect.left + sRect.width / 2 - vRect.left; 
-        const centerY = sRect.top + sRect.height / 2 - vRect.top; 
-        let dx = ix - INTERNAL_RES_W / 2; let dy = iy - INTERNAL_RES_H / 2; 
-        if (flipH) dx = -dx; 
-        const sFactor = (BASE_DISPLAY_W * zoom) / INTERNAL_RES_W; 
-        const rad = (rotation * Math.PI) / 180; 
-        const rx = (dx * Math.cos(rad) - dy * Math.sin(rad)) * sFactor; 
-        const ry = (dx * Math.sin(rad) + dy * Math.cos(rad)) * sFactor; 
-        return { x: centerX + rx, y: centerY + ry }; 
-    }
+    function project(ix, iy) { const centerX = sRect.left + sRect.width / 2 - vRect.left; const centerY = sRect.top + sRect.height / 2 - vRect.top; let dx = ix - INTERNAL_RES_W / 2; let dy = iy - INTERNAL_RES_H / 2; if (flipH) dx = -dx; const sFactor = (BASE_DISPLAY_W * zoom) / INTERNAL_RES_W; const rad = (rotation * Math.PI) / 180; const rx = (dx * Math.cos(rad) - dy * Math.sin(rad)) * sFactor; const ry = (dx * Math.sin(rad) + dy * Math.cos(rad)) * sFactor; return { x: centerX + rx, y: centerY + ry }; }
     const mx = pos.rawX - vRect.left; const my = pos.rawY - vRect.top; curCtx.save(); let outlineColor = 'white';
     try { const px = Math.floor(pos.x); const py = Math.floor(pos.y); if (px >= 0 && px < INTERNAL_RES_W && py >= 0 && py < INTERNAL_RES_H) { const pixel = displayCtx.getImageData(px, py, 1, 1).data; const lightness = pixel[3] === 0 ? 100 : (Math.max(pixel[0], pixel[1], pixel[2]) / 255 * 100); outlineColor = lightness > 50 ? 'black' : 'white'; } } catch(e) { outlineColor = 'white'; }
     if (activeSelectionPoints.length > 0 || (isPainting && (mode === 'lasso' || mode === 'poly-lasso'))) {
-        scratchSelectionCtx.clearRect(0, 0, scratchSelectionCanvas.width, scratchSelectionCanvas.height);
-        scratchSelectionCtx.save();
+        scratchSelectionCtx.clearRect(0, 0, scratchSelectionCanvas.width, scratchSelectionCanvas.height); scratchSelectionCtx.save();
         function traceSelectionToCtx(ctx) {
-            const centerX = sRect.left + sRect.width / 2 - vRect.left; 
-            const centerY = sRect.top + sRect.height / 2 - vRect.top;
-            const sFactor = (BASE_DISPLAY_W * zoom) / INTERNAL_RES_W;
-            activeSelectionPoints.forEach(p => {
-                ctx.globalCompositeOperation = (p.op === 'sub') ? 'destination-out' : 'source-over';
-                if (p.pts) {
-                    ctx.beginPath(); const p0 = project(p.pts[0].x, p.pts[0].y); ctx.moveTo(p0.x, p0.y);
-                    for(let i=1; i<p.pts.length; i++) { const pr = project(p.pts[i].x, p.pts[i].y); ctx.lineTo(pr.x, pr.y); }
-                    ctx.closePath(); ctx.fill();
-                } else if (p.bitmap) {
-                    ctx.save(); ctx.translate(centerX, centerY); ctx.rotate(rotation * Math.PI / 180); ctx.scale(sFactor, sFactor); ctx.scale(flipH ? -1 : 1, 1); ctx.drawImage(p.bitmap, -INTERNAL_RES_W/2, -INTERNAL_RES_H/2); ctx.restore();
-                }
-            });
-            if (isPainting && (mode === 'lasso' || mode === 'poly-lasso') && lassoPoints.length > 1) {
-                const tempPts = [...lassoPoints]; ctx.globalCompositeOperation = (lassoOp === 'sub') ? 'destination-out' : 'source-over';
-                ctx.beginPath(); const p0 = project(tempPts[0].x, tempPts[0].y); ctx.moveTo(tempPts[0].x, tempPts[0].y);
-                for(let i=1; i<tempPts.length; i++) { const pr = project(tempPts[i].x, tempPts[i].y); ctx.lineTo(pr.x, pr.y); }
-                ctx.closePath(); ctx.fill();
-            }
+            const centerX = sRect.left + sRect.width / 2 - vRect.left; const centerY = sRect.top + sRect.height / 2 - vRect.top; const sFactor = (BASE_DISPLAY_W * zoom) / INTERNAL_RES_W;
+            activeSelectionPoints.forEach(p => { ctx.globalCompositeOperation = (p.op === 'sub') ? 'destination-out' : 'source-over'; if (p.pts) { ctx.beginPath(); const p0 = project(p.pts[0].x, p.pts[0].y); ctx.moveTo(p0.x, p0.y); for(let i=1; i<p.pts.length; i++) { const pr = project(p.pts[i].x, p.pts[i].y); ctx.lineTo(pr.x, pr.y); } ctx.closePath(); ctx.fill(); } else if (p.bitmap) { ctx.save(); ctx.translate(centerX, centerY); ctx.rotate(rotation * Math.PI / 180); ctx.scale(sFactor, sFactor); ctx.scale(flipH ? -1 : 1, 1); ctx.drawImage(p.bitmap, -INTERNAL_RES_W/2, -INTERNAL_RES_H/2); ctx.restore(); } });
+            if (isPainting && (mode === 'lasso' || mode === 'poly-lasso') && lassoPoints.length > 1) { ctx.globalCompositeOperation = (lassoOp === 'sub') ? 'destination-out' : 'source-over'; ctx.beginPath(); const p0 = project(lassoPoints[0].x, lassoPoints[0].y); ctx.moveTo(p0.x, p0.y); for(let i=1; i<lassoPoints.length; i++) { const pr = project(lassoPoints[i].x, lassoPoints[i].y); ctx.lineTo(pr.x, pr.y); } ctx.closePath(); ctx.fill(); }
         }
         scratchSelectionCtx.fillStyle = 'white'; traceSelectionToCtx(scratchSelectionCtx);
         curCtx.save(); curCtx.setLineDash([4, 4]); curCtx.lineDashOffset = -selectionDashOffset; curCtx.globalAlpha = 0.05; curCtx.drawImage(scratchSelectionCanvas, 0, 0); curCtx.globalAlpha = 1.0;
@@ -2221,85 +2017,48 @@ function updateCursor(pos) {
 
 function draw_impl(pos, pressureInput) {
     const layer = layers[activeIdx]; if (!layer || !layer.visible || layer.locked || layer.type === 'group') return;
-    
     let targetPressure = (pressureInput !== undefined && pressureInput > 0) ? pressureInput : 1.0;
     strokeHistory.push({ x: pos.x, y: pos.y, p: targetPressure });
-
-    // Smooth Engine: Need at least 3 points for Quadratic Bezier
-    if (strokeHistory.length < 3) {
-        // Initial point rendering
-        renderSmoothSegment(strokeHistory[0], strokeHistory[0], strokeHistory[0]);
-        return;
-    }
-
-    const p0 = strokeHistory[strokeHistory.length - 3];
-    const p1 = strokeHistory[strokeHistory.length - 2];
-    const p2 = strokeHistory[strokeHistory.length - 1];
-
-    // Midpoints for smooth Bezier joints
-    const mid1 = { x: (p0.x + p1.x) / 2, y: (p0.y + p1.y) / 2, p: (p0.p + p1.p) / 2 };
-    const mid2 = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2, p: (p1.p + p2.p) / 2 };
-
+    if (strokeHistory.length < 3) { renderSmoothSegment(strokeHistory[0], strokeHistory[0], strokeHistory[0]); return; }
+    const p0 = strokeHistory[strokeHistory.length - 3], p1 = strokeHistory[strokeHistory.length - 2], p2 = strokeHistory[strokeHistory.length - 1];
+    const mid1 = { x: (p0.x + p1.x) / 2, y: (p0.y + p1.y) / 2, p: (p0.p + p1.p) / 2 }, mid2 = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2, p: (p1.p + p2.p) / 2 };
     renderSmoothSegment(mid1, p1, mid2);
 }
 
 function renderSmoothSegment(start, control, end) {
     const dist = Math.hypot(end.x - start.x, end.y - start.y);
-    const steps = Math.max(1, dist / (brushSize * brushSettings.spacing));
-    
+    const spacingRatio = Math.max(0.01, brushSettings.spacing);
+    const steps = Math.max(1, dist / (brushSize * spacingRatio));
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-
     for (let i = 0; i <= steps; i++) {
         const t = i / steps;
-        // Quadratic Bezier Formula: (1-t)^2*P0 + 2(1-t)t*P1 + t^2*P2
         const ix = Math.pow(1 - t, 2) * start.x + 2 * (1 - t) * t * control.x + Math.pow(t, 2) * end.x;
         const iy = Math.pow(1 - t, 2) * start.y + 2 * (1 - t) * t * control.y + Math.pow(t, 2) * end.y;
         const ip = Math.pow(1 - t, 2) * start.p + 2 * (1 - t) * t * control.p + Math.pow(t, 2) * end.p;
-
         let finalBrushSize = brushSize; if (usePressureSize) finalBrushSize = Math.max(1, brushSize * ip);
         let finalOpacity = opacity; if (usePressure) finalOpacity *= ip;
-        
         let renderX = ix, renderY = iy;
-        if (brushSettings.scatter > 0) {
-            renderX += (Math.random() - 0.5) * (brushSettings.scatter / 10) * finalBrushSize * 2;
-            renderY += (Math.random() - 0.5) * (brushSettings.scatter / 10) * finalBrushSize * 2;
-        }
-
+        if (brushSettings.scatter > 0) { renderX += (Math.random() - 0.5) * (brushSettings.scatter / 10) * finalBrushSize * 2; renderY += (Math.random() - 0.5) * (brushSettings.scatter / 10) * finalBrushSize * 2; }
+        const rAngle = brushRotation + (Math.random() - 0.5) * brushSettings.angleJitter * 360;
         let dH = brushSettings.strokeHueOffset, dS = brushSettings.strokeSatOffset, dV = brushSettings.strokeBriOffset;
-        if (brushSettings.jitterMode === 'tip') {
-            dH = (Math.random() - 0.5) * brushSettings.hueJitter * 360;
-            dS = (Math.random() - 0.5) * brushSettings.satJitter * 100;
-            dV = (Math.random() - 0.5) * brushSettings.briJitter * 100;
-        }
-
-        activeStrokeCtx.save();
-        applySelectionMask(activeStrokeCtx);
-        if (mode === 'smudge' && smudgeBuffer) {
-            activeStrokeCtx.globalAlpha = finalOpacity * brushSettings.flow;
-            activeStrokeCtx.drawImage(smudgeBuffer, renderX - finalBrushSize/2, renderY - finalBrushSize/2, finalBrushSize, finalBrushSize);
-        } else {
+        if (brushSettings.jitterMode === 'tip') { dH = (Math.random() - 0.5) * brushSettings.hueJitter * 360; dS = (Math.random() - 0.5) * brushSettings.satJitter * 100; dV = (Math.random() - 0.5) * brushSettings.briJitter * 100; }
+        activeStrokeCtx.save(); applySelectionMask(activeStrokeCtx);
+        if (mode === 'smudge' && smudgeBuffer) { activeStrokeCtx.globalAlpha = finalOpacity * brushSettings.flow; activeStrokeCtx.drawImage(smudgeBuffer, renderX - finalBrushSize/2, renderY - finalBrushSize/2, finalBrushSize, finalBrushSize); } 
+        else {
             const dabColor = (mode === 'eraser' || isBacktickDown) ? 'rgb(255,255,255)' : getEngineColor(parseFloat(curH) + dH, parseFloat(curS) + dS, parseFloat(curV) + dV);
-            renderDab(activeStrokeCtx, renderX, renderY, finalBrushSize, dabColor, brushSettings.hardness, finalOpacity * brushSettings.flow);
+            renderDab(activeStrokeCtx, renderX, renderY, finalBrushSize, dabColor, brushSettings.hardness, finalOpacity * brushSettings.flow, rAngle);
         }
         activeStrokeCtx.restore();
-
-        const pad = finalBrushSize / 2 + 5;
-        minX = Math.min(minX, renderX - pad); minY = Math.min(minY, renderY - pad);
-        maxX = Math.max(maxX, renderX + pad); maxY = Math.max(maxY, renderY + pad);
+        const pad = finalBrushSize / 2 + 5; minX = Math.min(minX, renderX - pad); minY = Math.min(minY, renderY - pad); maxX = Math.max(maxX, renderX + pad); maxY = Math.max(maxY, renderY + pad);
     }
-
-    const rw = maxX - minX; const rh = maxY - minY;
-    if (!currentDirtyRect) currentDirtyRect = { x: minX, y: minY, w: rw, h: rh };
-    else {
-        const nx = Math.min(currentDirtyRect.x, minX); const ny = Math.min(currentDirtyRect.y, minY);
-        currentDirtyRect = { x: nx, y: ny, w: Math.max(currentDirtyRect.x + currentDirtyRect.w, maxX) - nx, h: Math.max(currentDirtyRect.y + currentDirtyRect.h, maxY) - ny };
-    }
+    const rw = maxX - minX, rh = maxY - minY; if (!currentDirtyRect) currentDirtyRect = { x: minX, y: minY, w: rw, h: rh };
+    else { const nx = Math.min(currentDirtyRect.x, minX), ny = Math.min(currentDirtyRect.y, minY); currentDirtyRect = { x: nx, y: ny, w: Math.max(currentDirtyRect.x + currentDirtyRect.w, maxX) - nx, h: Math.max(currentDirtyRect.y + currentDirtyRect.h, maxY) - ny }; }
 }
 
-function renderDab(ctx, x, y, size, colorString, hardness, currentFlow) {
-    const safeSize = Math.max(1, size); const cx = safeSize / 2; const cy = safeSize / 2;
+function renderDab(ctx, x, y, size, colorString, hardness, currentFlow, angleOverride = null) {
+    const safeSize = Math.max(1, size); const cx = safeSize / 2, cy = safeSize / 2;
     dabBufferCanvas.width = safeSize; dabBufferCanvas.height = safeSize; dabBufferCtx.clearRect(0, 0, safeSize, safeSize);
-    dabBufferCtx.save(); dabBufferCtx.translate(cx, cy); dabBufferCtx.rotate(brushRotation * Math.PI / 180);
+    dabBufferCtx.save(); dabBufferCtx.translate(cx, cy); dabBufferCtx.rotate((angleOverride !== null ? angleOverride : brushRotation) * Math.PI / 180);
     if (brushTip === 'round') {
         const rad = safeSize / 2;
         if (hardness >= 0.99) { dabBufferCtx.fillStyle = colorString; dabBufferCtx.beginPath(); dabBufferCtx.arc(0, 0, rad, 0, Math.PI * 2); dabBufferCtx.fill(); }
@@ -2308,13 +2067,31 @@ function renderDab(ctx, x, y, size, colorString, hardness, currentFlow) {
             grad.addColorStop(0, colorString); grad.addColorStop(Math.max(hardness, 0.1), colorString.replace('rgb', 'rgba').replace(')', `, ${0.8 * Math.sqrt(hardness + 0.05)})`)); grad.addColorStop(1, colorString.replace('rgb', 'rgba').replace(')', `, 0)`));
             dabBufferCtx.fillStyle = grad; dabBufferCtx.beginPath(); dabBufferCtx.arc(0, 0, rad, 0, Math.PI * 2); dabBufferCtx.fill();
         }
-    } else if (brushTip === 'flat') { dabBufferCtx.fillStyle = colorString; dabBufferCtx.fillRect(-safeSize/2, -safeSize/6, safeSize, safeSize/3); }
-    else if (customBrushTintedCanvas) { dabBufferCtx.drawImage(customBrushTintedCanvas, -safeSize/2, -safeSize/2, safeSize, safeSize); }
+    } else if (brushTip === 'flat') {
+        dabBufferCtx.fillStyle = colorString;
+        const h = Math.max(1, safeSize / 3);
+        dabBufferCtx.fillRect(-safeSize/2, -h/2, safeSize, h);
+    } else if (customBrushTintedCanvas) { dabBufferCtx.drawImage(customBrushTintedCanvas, -safeSize/2, -safeSize/2, safeSize, safeSize); }
     dabBufferCtx.restore();
-    if (brushSettings.texture) {
-        dabBufferCtx.save(); dabBufferCtx.globalCompositeOperation = 'destination-in'; dabBufferCtx.globalAlpha = brushSettings.textureDensity;
-        const ptrn = dabBufferCtx.createPattern(brushSettings.texture, 'repeat'); dabBufferCtx.fillStyle = ptrn; const offsetX = x - cx; const offsetY = y - cy; dabBufferCtx.translate(-offsetX, -offsetY); dabBufferCtx.fillRect(offsetX, offsetY, safeSize, safeSize);
-        dabBufferCtx.restore();
+
+    if (brushSettings.texture) { 
+        dabBufferCtx.save(); 
+        dabBufferCtx.globalCompositeOperation = 'destination-in'; 
+        dabBufferCtx.globalAlpha = brushSettings.textureDensity; 
+        const pattern = dabBufferCtx.createPattern(brushSettings.texture, 'repeat');
+        if (pattern) {
+            const matrix = new DOMMatrix();
+            // Scale and align pattern origin to top-left of global canvas for stroke continuity
+            const gx = x - cx;
+            const gy = y - cy;
+            const s = brushSettings.textureScale;
+            matrix.scaleSelf(s, s);
+            matrix.translateSelf(-gx/s, -gy/s);
+            pattern.setTransform(matrix);
+            dabBufferCtx.fillStyle = pattern; 
+            dabBufferCtx.fillRect(0, 0, safeSize, safeSize); 
+        }
+        dabBufferCtx.restore(); 
     }
     ctx.save(); ctx.globalAlpha = currentFlow; ctx.drawImage(dabBufferCanvas, x - safeSize/2, y - safeSize/2); ctx.restore();
 }
@@ -2440,3 +2217,4 @@ init();
 </script>
 </body>
 </html>
+
