@@ -12,7 +12,7 @@
 --bg-panel: rgba(235, 235, 235, 0.98);
 --bg-canvas-container: #d6d6d6;
 --text-main: #1a1a1a;
---text-dim: #4b5563; /* gray-600 - The specific grey requested */
+--text-dim: #4b5563; /* gray-600 */
 --text-header: #4b5563; 
 --border-color: rgba(0, 0, 0, 0.1);
 --input-bg: #ebebeb;
@@ -55,7 +55,6 @@ flex-shrink: 0;
 }
 .dark-mode #canvasStack { box-shadow: 0 0 50px rgba(0,0,0,0.6); }
 
-/* Force correct color classes to use our variables */
 .ui-grey-text { color: var(--text-dim); }
 .ui-grey-icon { color: var(--text-dim); }
 .editable-val { cursor: text; border-bottom: 1px dashed transparent; transition: all 0.2s; }
@@ -133,10 +132,38 @@ flex-direction: column;
 gap: 4px;
 }
 .color-preview-active { border-color: #D38E3F !important; box-shadow: 0 0 10px rgba(211, 142, 63, 0.4) !important; }
-.brush-grid-item { aspect-ratio: 1; border: 1px solid var(--border-color); border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden; }
-.brush-grid-item.active { border-color: #D38E3F; background: rgba(211, 142, 63, 0.1); }
-.brush-grid-item:hover { background: var(--item-hover); }
-.brush-grid-item .delete-brush { position: absolute; top: 2px; right: 2px; font-size: 8px; color: #ff4444; opacity: 0; transition: opacity 0.2s; }
+
+/* Redesigned Brush Library Styles */
+.brush-grid-item { 
+    aspect-ratio: 1.2 / 1; 
+    border: 1px solid var(--border-color); 
+    border-radius: 12px; 
+    display: flex; 
+    flex-direction: column;
+    cursor: pointer; 
+    transition: all 0.2s; 
+    position: relative; 
+    overflow: hidden; 
+    background: #333; /* Dark background like reference */
+}
+.brush-grid-item.active { border-color: #D38E3F; outline: 1px solid #D38E3F; }
+.brush-grid-item:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+.brush-item-preview { flex: 1; min-height: 0; width: 100%; position: relative; pointer-events: none; }
+.brush-item-label { 
+    height: 24px; 
+    width: 100%; 
+    background: rgba(0,0,0,0.4); 
+    display: flex; 
+    align-items: center; 
+    padding: 0 8px; 
+    font-size: 8px; 
+    font-weight: 800; 
+    text-transform: uppercase; 
+    color: #e0e0e0; 
+    letter-spacing: 0.05em;
+    pointer-events: none;
+}
+.brush-grid-item .delete-brush { position: absolute; top: 4px; right: 4px; font-size: 8px; color: #ff4444; opacity: 0; transition: opacity 0.2s; z-index: 10; }
 .brush-grid-item:hover .delete-brush { opacity: 1; }
 
 #tabBar { height: 32px; border-bottom: 1px solid var(--border-color); display: flex; align-items: flex-end; padding: 0 8px; gap: 4px; overflow-x: auto; background: rgba(0,0,0,0.05); }
@@ -489,7 +516,7 @@ onclick="toggleToolPopup('shapes')" title="Shapes (Rectangle, Ellipse, Line)">
 <span>Brush Library</span>
 <i class="fas fa-grip-lines"></i>
 </div>
-<div id="brushLibraryGrid" class="grid grid-cols-4 gap-2 max-h-[40vh] overflow-y-auto pr-1 flex-1"></div>
+<div id="brushLibraryGrid" class="grid grid-cols-2 gap-3 max-h-[40vh] overflow-y-auto pr-1 flex-1"></div>
 <div class="flex flex-col gap-2 mt-4 flex-shrink-0">
     <div class="flex gap-2">
         <button onclick="exportBrushes()" class="flex-1 py-1.5 bg-black/5 dark:bg-black/20 hover:bg-black/10 dark:hover:bg-black/40 text-[8px] font-black uppercase rounded-lg border border-black/5 dark:border-white/5 transition-all" title="Export whole library as one set">Export Library</button>
@@ -793,7 +820,6 @@ strokeBriOffset: 0,
 lastDabX: 0, lastDabY: 0, distSinceLastDab: 0
 };
 
-// TOOL SETTINGS PERSISTENCE
 const toolSettings = {
     brush: {
         size: 30,
@@ -826,7 +852,6 @@ function init() {
     window.addEventListener('resize', resizeOverlay);
     resizeOverlay();
     
-    // Default system state
     brushTip = 'round';
     usePressure = false;
     usePressureSize = false;
@@ -1002,7 +1027,6 @@ function setupDefaultBrushes() {
     hctx.fill();
     brushLibrary.push({ id: 'hatching', type: 'custom', name: 'Hatching', mask: hatchingCanvas.toDataURL(), canvas: hatchingCanvas, settings: { spacing: 0.34, hardness: 1.0, flow: 1.0, scatter: 0.0, angleJitter: 0.0, texture: null } });
 
-    // Built-in textured brushes - Using black on white and alphaifying to match engine logic
     const htCanvas = document.createElement('canvas'); htCanvas.width = htCanvas.height = 128;
     const htCtx = htCanvas.getContext('2d'); 
     htCtx.fillStyle = 'white'; htCtx.fillRect(0,0,128,128);
@@ -1276,7 +1300,7 @@ function manualInput(el, sliderId, min, max, unit) {
         const slider = document.getElementById(sliderId);
         slider.value = val;
         slider.dispatchEvent(new Event('input'));
-        el.innerText = val + unit;
+        el.innerText = (unit === '%' ? Math.round(val) : val) + unit;
         input.replaceWith(el);
     };
 
@@ -1429,7 +1453,7 @@ function setupBrushEngineUI() {
         slider.oninput = (e) => { 
             const val = parseFloat(e.target.value) / multiplier; 
             brushSettings[key] = val; 
-            label.innerText = isPercent ? Math.round(val * multiplier) + '%' : e.target.value; 
+            label.innerText = (isPercent ? Math.round(val * multiplier) : e.target.value) + (isPercent ? '%' : ''); 
             updateBrushPreview(); 
         };
     };
@@ -1439,7 +1463,7 @@ function setupBrushEngineUI() {
     bind('bs-scatter', 'scatter', 1, false); 
     bind('bs-angleJitter', 'angleJitter', 100);
     bind('bs-textureDensity', 'textureDensity', 100);
-    bind('bs-textureScale', 'textureScale', 1, true); // Changed to true for consistency
+    bind('bs-textureScale', 'textureScale', 1, true); 
     bind('bs-hueJitter', 'hueJitter', 100); 
     bind('bs-satJitter', 'satJitter', 100); 
     bind('bs-briJitter', 'briJitter', 100);
@@ -1447,23 +1471,85 @@ function setupBrushEngineUI() {
 }
 
 function toggleBrushSettings() { const panel = document.getElementById('brushSettingsPanel'); panel.classList.toggle('hidden'); if(!panel.classList.contains('hidden')) { bringToFront(panel); updateBrushPreview(); } document.getElementById('btn-brush-settings').classList.toggle('active', !panel.classList.contains('hidden')); }
-function toggleBrushLibrary() { const panel = document.getElementById('brushLibraryPanel'); panel.classList.toggle('hidden'); if(!panel.classList.contains('hidden')) bringToFront(panel); document.getElementById('btn-brush-library').classList.toggle('active', !panel.classList.contains('hidden')); }
+function toggleBrushLibrary() { const panel = document.getElementById('brushLibraryPanel'); panel.classList.toggle('hidden'); if(!panel.classList.contains('hidden')) { bringToFront(panel); renderBrushLibrary(); } document.getElementById('btn-brush-library').classList.toggle('active', !panel.classList.contains('hidden')); }
 
 function renderBrushLibrary() {
     const grid = document.getElementById('brushLibraryGrid'); grid.innerHTML = '';
-    const isDark = document.body.classList.contains('dark-mode');
-    const previewColor = isDark ? 'rgba(255,255,255,0.5)' : '#4b5563';
     
     brushLibrary.forEach(brush => {
         const item = document.createElement('div'); const isActive = brushTip === brush.id;
-        item.className = `brush-grid-item ${isActive ? 'active' : ''}`; item.title = brush.name;
-        if (brush.type === 'round') item.innerHTML = `<div class="w-6 h-6 rounded-full border border-black/10 dark:border-white/20" style="background-color: ${previewColor}"></div>`;
-        else if (brush.type === 'flat') item.innerHTML = `<div class="w-6 h-2 border border-black/10 dark:border-white/20" style="background-color: ${previewColor}"></div>`;
-        else if (brush.type === 'custom') {
-            const img = new Image(); img.src = brush.mask; img.className = "w-8 h-8 object-contain opacity-70"; 
-            if (!isDark) img.style.filter = "invert(1) brightness(0.5)";
-            item.appendChild(img);
-            const del = document.createElement('button'); del.className = "delete-brush"; del.innerHTML = '<i class="fas fa-times ui-grey-icon"></i>';
+        item.className = `brush-grid-item ${isActive ? 'active' : ''}`; 
+        item.title = brush.name;
+        
+        const previewWrap = document.createElement('div');
+        previewWrap.className = "brush-item-preview";
+        const previewCanvas = document.createElement('canvas');
+        previewCanvas.width = 120; previewCanvas.height = 60;
+        previewWrap.appendChild(previewCanvas);
+        
+        const label = document.createElement('div');
+        label.className = "brush-item-label";
+        label.innerText = brush.name;
+        
+        item.appendChild(previewWrap);
+        item.appendChild(label);
+
+        // Generate the stroke preview for this brush
+        const pctx = previewCanvas.getContext('2d');
+        const settings = brush.settings || { spacing: 0.01, texture: null };
+        const bType = brush.type;
+        
+        // Draw wavy stroke preview
+        pctx.save();
+        const startX = 10, endX = previewCanvas.width - 10, centerY = previewCanvas.height / 2;
+        let previewDist = 0; let lx = startX, ly = centerY;
+        const steps = 60;
+        
+        for (let i = 0; i <= steps; i++) {
+            const ratio = i / steps;
+            const x = startX + (endX - startX) * ratio;
+            const y = centerY + Math.sin(ratio * Math.PI * 3) * 6;
+            const segmentDist = Math.hypot(x - lx, y - ly); previewDist += segmentDist;
+            const pSize = 12 * (0.4 + 0.6 * ratio);
+            const spacingPx = Math.max(0.2, pSize * (settings.spacing || 0.01));
+            
+            if (previewDist >= spacingPx || i === 0) {
+                // Internal render dab helper logic for the library UI
+                const dabS = Math.max(1, pSize);
+                const dabBuf = document.createElement('canvas');
+                dabBuf.width = dabBuf.height = dabS;
+                const dctx = dabBuf.getContext('2d');
+                dctx.save(); dctx.translate(dabS/2, dabS/2);
+                dctx.fillStyle = 'white';
+                if (bType === 'round') { dctx.beginPath(); dctx.arc(0, 0, dabS/2, 0, Math.PI*2); dctx.fill(); }
+                else if (bType === 'flat') { dctx.fillRect(-dabS/2, -dabS/6, dabS, dabS/3); }
+                else {
+                    const bObj = brushLibrary.find(bl => bl.id === brush.id);
+                    if (bObj && bObj.canvas) dctx.drawImage(bObj.canvas, -dabS/2, -dabS/2, dabS, dabS);
+                }
+                
+                if (settings.texture) {
+                    dctx.globalCompositeOperation = 'destination-in';
+                    const pattern = dctx.createPattern(settings.texture, 'repeat');
+                    if (pattern) {
+                        const m = new DOMMatrix(); 
+                        const s = (settings.textureScale || 100) / 100;
+                        m.scaleSelf(s, s);
+                        m.translateSelf(- (x - dabS/2)/s, - (y - dabS/2)/s);
+                        pattern.setTransform(m); dctx.fillStyle = pattern; dctx.fillRect(-dabS/2, -dabS/2, dabS, dabS);
+                    }
+                }
+                dctx.restore();
+                pctx.globalAlpha = settings.flow || 1.0;
+                pctx.drawImage(dabBuf, x - dabS/2, y - dabS/2);
+                previewDist = 0;
+            }
+            lx = x; ly = y;
+        }
+        pctx.restore();
+
+        if (brush.type === 'custom') {
+            const del = document.createElement('button'); del.className = "delete-brush"; del.innerHTML = '<i class="fas fa-times"></i>';
             del.onclick = (e) => { e.stopPropagation(); brushLibrary = brushLibrary.filter(b => b.id !== brush.id); if (brushTip === brush.id) brushTip = 'round'; renderBrushLibrary(); updateBrushPreview(); };
             item.appendChild(del);
         }
@@ -1561,10 +1647,7 @@ function alphaifyTexture(img) {
     ctx.drawImage(img, 0, 0);
     const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
     for (let i = 0; i < data.data.length; i += 4) {
-        // Calculate luminosity
         const avg = (data.data[i] + data.data[i + 1] + data.data[i + 2]) / 3;
-        // Keep standard colors (pure white pattern) but move luminosity to alpha
-        // Darker parts of texture will be OPAQUE, lighter parts will be TRANSPARENT
         data.data[i] = 255;
         data.data[i + 1] = 255;
         data.data[i + 2] = 255;
@@ -1750,15 +1833,13 @@ function handleKeys(e) {
 
 function clearSelection() { activeSelectionPoints = []; lassoPoints = []; maskCtx.clearRect(0, 0, INTERNAL_RES_W, INTERNAL_RES_H); document.getElementById('selectionGlobalUI').classList.replace('flex', 'hidden'); updateCursor(lastMouseData); needsFullRedraw = true; }
 function updateLassoFeather(val) { lassoFeather = parseInt(val); document.getElementById('lassoFeatherVal').innerText = val + 'px'; if (activeSelectionPoints.length > 0) generateMask(); needsFullRedraw = true; }
-
 function setupDraggable(el) {
     let nx = 0, ny = 0;
     el.addEventListener('pointerdown', (e) => {
-        // Exclude buttons, inputs, canvas, specific grid items, and editable values from starting a drag
         if (['BUTTON', 'INPUT', 'SELECT', 'CANVAS'].includes(e.target.tagName) || 
             e.target.closest('.brush-grid-item') || 
             e.target.closest('#hsvBox') || 
-            e.target.classList.contains('editable-val')) return;
+            e.target.closest('.editable-val')) return;
             
         bringToFront(el); el.setPointerCapture(e.pointerId); nx = e.clientX; ny = e.clientY;
         const onPointerMove = (me) => { const dx = nx - me.clientX; const dy = ny - me.clientY; nx = me.clientX; ny = me.clientY; el.style.top = (el.offsetTop - dy) + "px"; el.style.left = (el.offsetLeft - dx) + "px"; el.style.bottom = 'auto'; el.style.right = 'auto'; };
@@ -1841,7 +1922,7 @@ function triggerImageImport() { document.getElementById('imageInput').click(); }
 function handleImageImport(e) {
     const file = e.target.files[0]; if (!file) return; const reader = new FileReader();
     reader.onload = (event) => {
-        const img = new Image(); img.onload = () => { saveUndo(); const canvas = document.createElement('canvas'); canvas.width = INTERNAL_RES_W; canvas.height = INTERNAL_RES_H; ctx = canvas.getContext('2d'); const scale = Math.min(INTERNAL_RES_W / img.width, INTERNAL_RES_H / img.height); ctx.drawImage(img, (INTERNAL_RES_W - img.width * scale) / 2, (INTERNAL_RES_H - img.height * scale) / 2, img.width * scale, img.height * scale);
+        const img = new Image(); img.onload = () => { saveUndo(); const canvas = document.createElement('canvas'); canvas.width = INTERNAL_RES_W; canvas.height = INTERNAL_RES_H; const ctx = canvas.getContext('2d'); const scale = Math.min(INTERNAL_RES_W / img.width, INTERNAL_RES_H / img.height); ctx.drawImage(img, (INTERNAL_RES_W - img.width * scale) / 2, (INTERNAL_RES_H - img.height * scale) / 2, img.width * scale, img.height * scale);
         layers.unshift({ id: Date.now() + Math.random(), type: 'layer', name: file.name.split('.')[0] || 'Imported', canvas, ctx, visible: true, alphaLocked: false, locked: false, clippingMask: false, blendMode: 'source-over', opacity: 1.0, maskCanvas: null, maskCtx: null, parentId: null, expanded: true });
         activeIdx = 0; isMaskActive = false; refreshUI(); needsFullRedraw = true; e.target.value = ''; }; img.src = event.target.result;
     }; reader.readAsDataURL(file);
@@ -2092,7 +2173,7 @@ function updateCursor(pos) {
     if (['lasso', 'poly-lasso', 'wand', 'rect', 'ellipse', 'line'].includes(mode)) { curCtx.strokeStyle = outlineColor; curCtx.lineWidth = 2; const s = 8; curCtx.beginPath(); curCtx.moveTo(mx - s, my); curCtx.lineTo(mx + s, my); curCtx.moveTo(mx, my - s); curCtx.lineTo(mx, my + s); curCtx.stroke(); }
     else if (mode === 'bucket' || mode === 'gradient') { curCtx.strokeStyle = outlineColor; curCtx.lineWidth = 2; const s = 10; curCtx.beginPath(); curCtx.moveTo(mx - s, my - s); curCtx.lineTo(mx + s, my + s); curCtx.moveTo(mx + s, my - s); curCtx.lineTo(mx - s, my + s); curCtx.stroke(); }
     else if (isTransforming) { const s = transformState; const sc = INTERNAL_RES_W / (BASE_DISPLAY_W * zoom); const getCorner = (cx, cy) => { const rx = cx * Math.cos(s.rotation) - cy * Math.sin(s.rotation); const ry = cx * Math.sin(s.rotation) + cy * Math.cos(s.rotation); return project(s.x + rx, s.y + ry); }; const cTL = getCorner(- (s.width/2) * s.scale, - (s.height/2) * s.scale); const cTR = getCorner((s.width/2) * s.scale, - (s.height/2) * s.scale); const cBR = getCorner((s.width/2) * s.scale, (s.height/2) * s.scale); const cBL = getCorner(- (s.width/2) * s.scale, (s.height/2) * s.scale); const cMidTop = getCorner(0, - (s.height/2) * s.scale); const cRot = getCorner(0, - (s.height/2) * s.scale - 60 * sc); curCtx.strokeStyle = '#D38E3F'; curCtx.lineWidth = 2; curCtx.beginPath(); curCtx.moveTo(cTL.x, cTL.y); curCtx.lineTo(cTR.x, cTR.y); curCtx.lineTo(cBR.x, cBR.y); curCtx.lineTo(cBL.x, cBL.y); curCtx.closePath(); curCtx.stroke(); curCtx.beginPath(); curCtx.moveTo(cMidTop.x, cMidTop.y); curCtx.lineTo(cRot.x, cRot.y); curCtx.stroke(); const drawHandle = (p, isCircle = false) => { curCtx.fillStyle = '#D38E3F'; curCtx.strokeStyle = 'white'; curCtx.lineWidth = 2; if (isCircle) { curCtx.beginPath(); curCtx.arc(p.x, p.y, 12, 0, Math.PI*2); curCtx.fill(); curCtx.stroke(); } else { curCtx.fillRect(p.x - 10, p.y - 10, 20, 20); curCtx.strokeRect(p.x - 10, p.y - 10, 20, 20); } }; drawHandle(cTL); drawHandle(cTR); drawHandle(cBR); drawHandle(cBL); drawHandle(cRot, true); }
-    else if (!isSpaceDown && pos.rawX >= vRect.left && pos.rawX <= vRect.right) { curCtx.save(); curCtx.translate(mx, my); curCtx.rotate((rotation + brushRotation) * Math.PI / 180); curCtx.strokeStyle = outlineColor; curCtx.lineWidth = 1; const screenRadius = (brushSize / 2) * (sRect.width / INTERNAL_RES_W); if (brushTip === 'round' || (brushLibrary.find(b => b.id === brushTip)?.type === 'round')) { curCtx.beginPath(); curCtx.arc(0, 0, screenRadius, 0, Math.PI * 2); curCtx.stroke(); } else if (brushTip === 'flat' || (brushLibrary.find(b => b.id === brushTip)?.type === 'flat')) { curCtx.strokeRect(-screenRadius, -screenRadius/3, screenRadius*2, screenRadius*2/3); } else { const brush = brushLibrary.find(b => b.id === brushTip); if (brush && brush.canvas) { curCtx.globalAlpha = 0.5; curCtx.drawImage(brush.canvas, -screenRadius, -screenRadius, screenRadius*2, screenRadius*2); } else { curCtx.beginPath(); curCtx.arc(0, 0, screenRadius, 0, Math.PI * 2); curCtx.stroke(); } } curCtx.restore(); }
+    else if (!isSpaceDown && pos.rawX >= vRect.left && pos.rawX <= vRect.right) { curCtx.save(); curCtx.translate(mx, my); curCtx.rotate((rotation + brushRotation) * Math.PI / 180); curCtx.strokeStyle = outlineColor; curCtx.lineWidth = 1; const screenRadius = (brushSize / 2) * (sRect.width / INTERNAL_RES_W); const brushObj = brushLibrary.find(b => b.id === brushTip) || { type: 'round' }; const type = brushObj.type; if (type === 'round') { curCtx.beginPath(); curCtx.arc(0, 0, screenRadius, 0, Math.PI * 2); curCtx.stroke(); } else if (type === 'flat') { curCtx.strokeRect(-screenRadius, -screenRadius/3, screenRadius*2, screenRadius*2/3); } else { if (brushObj.canvas) { curCtx.globalAlpha = 0.5; curCtx.drawImage(brushObj.canvas, -screenRadius, -screenRadius, screenRadius*2, screenRadius*2); } else { curCtx.beginPath(); curCtx.arc(0, 0, screenRadius, 0, Math.PI * 2); curCtx.stroke(); } } curCtx.restore(); }
     curCtx.restore();
 }
 
