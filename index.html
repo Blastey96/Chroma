@@ -8,6 +8,19 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
 :root {
+--bg-main: #f0f0f0;
+--bg-panel: rgba(235, 235, 235, 0.98);
+--bg-canvas-container: #d6d6d6;
+--text-main: #1a1a1a;
+--text-dim: #4b5563; /* gray-600 - The specific grey requested */
+--text-header: #4b5563; 
+--border-color: rgba(0, 0, 0, 0.1);
+--input-bg: #ebebeb;
+--input-border: #ccc;
+--item-hover: rgba(0, 0, 0, 0.05);
+--dot-color: #bbb;
+}
+body.dark-mode {
 --bg-main: #0a0a0a;
 --bg-panel: rgba(20, 20, 20, 0.95);
 --bg-canvas-container: #050505;
@@ -20,25 +33,12 @@
 --item-hover: rgba(255, 255, 255, 0.05);
 --dot-color: #222;
 }
-body.light-mode {
---bg-main: #f0f0f0;
---bg-panel: rgba(235, 235, 235, 0.98);
---bg-canvas-container: #d6d6d6;
---text-main: #1a1a1a;
---text-dim: #4b5563; /* gray-600 */
---text-header: #374151; /* gray-700 */
---border-color: rgba(0, 0, 0, 0.1);
---input-bg: #ebebeb;
---input-border: #ccc;
---item-hover: rgba(0, 0, 0, 0.05);
---dot-color: #bbb;
-}
 body { background-color: var(--bg-main); color: var(--text-main); font-family: 'Inter', sans-serif; overflow: hidden; margin: 0; user-select: none; transition: background-color 0.3s ease, color 0.3s ease; }
 .ui-panel { background: var(--bg-panel); backdrop-filter: blur(20px); border: 1px solid var(--border-color); }
 .canvas-container { background-image: radial-gradient(var(--dot-color) 1px, transparent 1px); background-size: 20px 20px; background-color: var(--bg-canvas-container); }
 #canvasStack {
 position: relative;
-box-shadow: 0 0 50px rgba(0,0,0,0.5);
+box-shadow: 0 0 50px rgba(0,0,0,0.3);
 background-color: #ffffff;
 background-image:
 linear-gradient(45deg, #e0e0e0 25%, transparent 25%),
@@ -53,6 +53,14 @@ transform-origin: center center;
 touch-action: none;
 flex-shrink: 0;
 }
+.dark-mode #canvasStack { box-shadow: 0 0 50px rgba(0,0,0,0.6); }
+
+/* Force correct color classes to use our variables */
+.ui-grey-text { color: var(--text-dim); }
+.ui-grey-icon { color: var(--text-dim); }
+.editable-val { cursor: text; border-bottom: 1px dashed transparent; transition: all 0.2s; }
+.editable-val:hover { border-bottom-color: #D38E3F; color: #D38E3F; }
+
 #displayCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
 #activeStrokeCanvas { display: none; }
 .layer-canvas { display: none; }
@@ -67,7 +75,7 @@ opacity: 0.8;
     background: rgba(211, 142, 63, 0.3) !important;
     outline: 2px solid #D38E3F;
 }
-.tool-btn.active { color: #D38E3F; background: rgba(211, 142, 63, 0.1); box-shadow: 0 0 15px rgba(211, 142, 63, 0.2); }
+.tool-btn.active { color: #D38E3F !important; background: rgba(211, 142, 63, 0.1); box-shadow: 0 0 15px rgba(211, 142, 63, 0.1); }
 #hsvBox { background: linear-gradient(to bottom, transparent, #000), linear-gradient(to right, #fff, transparent); }
 #hueBar { appearance: none; background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f0f); height: 8px; border-radius: 4px; }
 #hueBar::-webkit-slider-thumb { appearance: none; width: 12px; height: 12px; background: white; border-radius: 50%; cursor: pointer; border: 1px solid #000; }
@@ -85,8 +93,7 @@ min-height: 100px;
 .draggable-panel button, .draggable-panel input, .draggable-panel select, .draggable-panel canvas, .draggable-panel .brush-grid-item { cursor: pointer; }
 #cursorCanvas { pointer-events: none; z-index: 6000; position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; }
 
-/* Group UI Specifics */
-.group-indent { margin-left: 12px; border-left: 1px solid rgba(255,255,255,0.1); padding-left: 4px; }
+.group-indent { margin-left: 12px; border-left: 1px solid var(--border-color); padding-left: 4px; }
 .clipping-indent { margin-left: 12px; border-left: 2px solid #D38E3F; padding-left: 8px; }
 .group-header-row { border-left: 4px solid #D38E3F; }
 
@@ -107,9 +114,7 @@ letter-spacing: 0.05em;
 }
 select:focus { border-color: #D38E3F; }
 .layer-opacity-slider { height: 4px; width: 100%; }
-.light-mode .text-gray-500 { color: var(--text-header); }
-.light-mode .text-gray-400 { color: var(--text-dim); }
-.light-mode .text-gray-600 { color: var(--text-main); }
+
 .tool-popup {
 display: none;
 position: absolute;
@@ -119,7 +124,7 @@ background: var(--bg-panel);
 border: 1px solid var(--border-color);
 border-radius: 12px;
 padding: 8px;
-box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+box-shadow: 0 10px 30px rgba(0,0,0,0.2);
 z-index: 100;
 }
 .tool-popup.show {
@@ -134,7 +139,7 @@ gap: 4px;
 .brush-grid-item .delete-brush { position: absolute; top: 2px; right: 2px; font-size: 8px; color: #ff4444; opacity: 0; transition: opacity 0.2s; }
 .brush-grid-item:hover .delete-brush { opacity: 1; }
 
-#tabBar { height: 32px; border-bottom: 1px solid var(--border-color); display: flex; align-items: flex-end; padding: 0 8px; gap: 4px; overflow-x: auto; background: rgba(0,0,0,0.2); }
+#tabBar { height: 32px; border-bottom: 1px solid var(--border-color); display: flex; align-items: flex-end; padding: 0 8px; gap: 4px; overflow-x: auto; background: rgba(0,0,0,0.05); }
 .tab-item {
     height: 26px; 
     padding: 0 12px; 
@@ -161,7 +166,7 @@ gap: 4px;
 
 #modalOverlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
+    background: rgba(0,0,0,0.5); backdrop-filter: blur(5px);
     z-index: 9999; display: none; align-items: center; justify-content: center;
 }
 .modal-content {
@@ -180,6 +185,12 @@ gap: 4px;
     position: relative; width: 100%; aspect-ratio: 1; background: #000; border-radius: 12px; overflow: hidden;
 }
 #refCanvas { width: 100%; height: 100%; object-fit: contain; cursor: crosshair; }
+
+/* Texture Preview Specific Styles */
+#texturePreview {
+    background-image: radial-gradient(var(--dot-color) 1px, transparent 1px);
+    background-size: 10px 10px;
+}
 </style>
 </head>
 <body class="flex flex-col h-screen">
@@ -193,58 +204,57 @@ gap: 4px;
 </svg>
 CHROMA
 </h1>
-<div class="flex items-center gap-1 border-l border-white/10 pl-4 h-8">
-<button onclick="showNewProjectModal()" class="p-2 text-gray-400 hover:text-green-400 transition-colors" title="New Project (Ctrl+N)">
+<div class="flex items-center gap-1 border-l border-black/5 dark:border-white/10 pl-4 h-8">
+<button onclick="showNewProjectModal()" class="p-2 ui-grey-icon hover:text-green-500 transition-colors" title="New Project (Ctrl+N)">
     <i class="fas fa-file-circle-plus"></i>
 </button>
-<button onclick="triggerChromaImport()" class="p-2 text-gray-400 hover:text-purple-400 transition-colors" title="Open Chroma Project">
+<button onclick="triggerChromaImport()" class="p-2 ui-grey-icon hover:text-purple-500 transition-colors" title="Open Chroma Project">
 <i class="fas fa-folder-open"></i>
 </button>
 <div class="relative flex flex-col items-center">
-<button id="btn-save" class="p-2 text-gray-400 hover:text-blue-400 transition-colors"
-onpointerdown="startToolHold('save')" onpointerup="endToolHold('save')"
+<button id="btn-save" class="p-2 ui-grey-icon hover:text-blue-500 transition-colors"
 onclick="saveChromaFile()" title="Save (Ctrl+S) / Hold for Save As">
 <i class="fas fa-save"></i>
 </button>
 <div id="save-popup" class="tool-popup hidden" style="left: 50%; transform: translateX(-50%); top: 100%; margin-left: 0; margin-top: 5px; width: 120px;">
-<button onclick="saveChromaFile()" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F] flex items-center gap-2 text-[9px] font-bold uppercase w-full"><i class="fas fa-save"></i> Save</button>
-<button onclick="saveAsChromaFile()" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F] flex items-center gap-2 text-[9px] font-bold uppercase w-full"><i class="fas fa-file-export"></i> Save As...</button>
+<button onclick="saveChromaFile()" class="p-2 hover:bg-[#D38E3F]/10 rounded ui-grey-icon hover:text-[#D38E3F] flex items-center gap-2 text-[9px] font-bold uppercase w-full"><i class="fas fa-save"></i> Save</button>
+<button onclick="saveAsChromaFile()" class="p-2 hover:bg-[#D38E3F]/10 rounded ui-grey-icon hover:text-[#D38E3F] flex items-center gap-2 text-[9px] font-bold uppercase w-full"><i class="fas fa-file-export"></i> Save As...</button>
 </div>
 </div>
-<button onclick="toggleRefWindow()" class="p-2 text-gray-400 hover:text-[#D38E3F] transition-colors" title="Open Reference/Navigator Window">
+<button onclick="toggleRefWindow()" class="p-2 ui-grey-icon hover:text-[#D38E3F] transition-colors" title="Open Reference/Navigator Window">
     <i class="fas fa-image"></i>
 </button>
-<button onclick="triggerImageImport()" class="p-2 text-gray-400 hover:text-orange-400 transition-colors" title="Import Image">
+<button onclick="triggerImageImport()" class="p-2 ui-grey-icon hover:text-orange-500 transition-colors" title="Import Image">
 <i class="fas fa-file-import"></i>
 </button>
-<button onclick="exportCanvas()" class="p-2 text-gray-400 hover:text-[#D38E3F] transition-colors" title="Export PNG">
+<button onclick="exportCanvas()" class="p-2 ui-grey-icon hover:text-[#D38E3F] transition-colors" title="Export PNG">
 <i class="fas fa-file-export"></i>
 </button>
 </div>
-<div class="flex items-center gap-1 border-l border-white/10 pl-4 h-8">
-<button onclick="undo()" class="p-2 text-gray-400 hover:text-[#D38E3F] transition-colors" title="Undo (Ctrl+Z)">
+<div class="flex items-center gap-1 border-l border-black/5 dark:border-white/10 pl-4 h-8">
+<button onclick="undo()" class="p-2 ui-grey-icon hover:text-[#D38E3F] transition-colors" title="Undo (Ctrl+Z)">
 <i class="fas fa-undo-alt"></i>
 </button>
-<button onclick="redo()" class="p-2 text-gray-400 hover:text-[#D38E3F] transition-colors" title="Redo (Ctrl+Shift+Z)">
+<button onclick="redo()" class="p-2 ui-grey-icon hover:text-[#D38E3F] transition-colors" title="Redo (Ctrl+Shift+Z)">
 <i class="fas fa-redo-alt"></i>
 </button>
 </div>
-<div id="selectionGlobalUI" class="hidden items-center gap-3 border-l border-white/10 pl-6 h-8">
+<div id="selectionGlobalUI" class="hidden items-center gap-3 border-l border-black/5 dark:border-white/10 pl-6 h-8">
 <button onclick="clearSelection()" class="bg-[#D38E3F]/10 hover:bg-[#D38E3F]/20 text-[#D38E3F] border border-[#D38E3F]/30 px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all">
 Deselect
 </button>
 </div>
-<div id="wandOptions" class="hidden items-center gap-3 border-l border-white/10 pl-6 h-8">
+<div id="wandOptions" class="hidden items-center gap-3 border-l border-black/5 dark:border-white/10 pl-6 h-8">
 <div class="flex flex-col w-28">
-<div class="flex justify-between text-[8px] uppercase text-gray-500 font-bold mb-0.5">
-<span>Wand Tolerance</span><span id="wandToleranceVal">32</span>
+<div class="flex justify-between text-[8px] uppercase ui-grey-text font-bold mb-0.5">
+<span>Wand Tolerance</span><span id="wandToleranceVal" class="editable-val" onclick="manualInput(this, 'wandToleranceSlider', 1, 255, '')">32</span>
 </div>
 <input type="range" id="wandToleranceSlider" min="1" max="255" value="32" oninput="wandTolerance = parseInt(this.value); document.getElementById('wandToleranceVal').innerText = this.value;">
 </div>
 </div>
-<div id="gradientOptions" class="hidden items-center gap-3 border-l border-white/10 pl-6 h-8">
+<div id="gradientOptions" class="hidden items-center gap-3 border-l border-black/5 dark:border-white/10 pl-6 h-8">
 <div class="flex flex-col">
-<span class="text-[8px] uppercase text-gray-500 font-bold mb-0.5">Gradient Type</span>
+<span class="text-[8px] uppercase ui-grey-text font-bold mb-0.5">Gradient Type</span>
 <select id="gradientTypeSelect" onchange="gradientType = this.value">
 <option value="fg-bg">Foreground to Background</option>
 <option value="bg-fg">Background to Foreground</option>
@@ -253,59 +263,59 @@ Deselect
 </select>
 </div>
 </div>
-<div id="lassoOptions" class="hidden items-center gap-3 border-l border-white/10 pl-6 h-8">
+<div id="lassoOptions" class="hidden items-center gap-3 border-l border-black/5 dark:border-white/10 pl-6 h-8">
 <div class="flex flex-col w-28">
-<div class="flex justify-between text-[8px] uppercase text-gray-500 font-bold mb-0.5">
-<span>Feather</span><span id="lassoFeatherVal">0px</span>
+<div class="flex justify-between text-[8px] uppercase ui-grey-text font-bold mb-0.5">
+<span>Feather</span><span id="lassoFeatherVal" class="editable-val" onclick="manualInput(this, 'lassoFeatherSlider', 0, 100, 'px')">0px</span>
 </div>
 <input type="range" id="lassoFeatherSlider" min="0" max="100" value="0" oninput="updateLassoFeather(this.value)">
 </div>
 </div>
-<div class="flex items-center gap-4 border-l border-white/10 pl-6 h-8">
+<div class="flex items-center gap-4 border-l border-black/5 dark:border-white/10 pl-6 h-8">
 <div class="flex items-center gap-1 bg-black/5 dark:bg-white/5 rounded-lg p-1">
-<button onclick="changeZoom(-0.1)" class="w-8 h-6 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 rounded"><i class="fas fa-minus text-[10px]"></i></button>
-<span id="zoomVal" class="text-[10px] font-mono w-10 text-center">100%</span>
-<button onclick="changeZoom(0.1)" class="w-8 h-6 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 rounded"><i class="fas fa-plus text-[10px]"></i></button>
+<button onclick="changeZoom(-0.1)" class="w-8 h-6 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 rounded ui-grey-icon"><i class="fas fa-minus text-[10px]"></i></button>
+<span id="zoomVal" class="text-[10px] font-mono w-10 text-center ui-grey-text">100%</span>
+<button onclick="changeZoom(0.1)" class="w-8 h-6 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 rounded ui-grey-icon"><i class="fas fa-plus text-[10px]"></i></button>
 </div>
 <div class="flex items-center gap-1 bg-black/5 dark:bg-white/5 rounded-lg p-1">
-<button onclick="changeRotate(-15)" class="w-8 h-6 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 rounded"><i class="fas fa-undo text-[10px]"></i></button>
-<span id="rotateVal" class="text-[10px] font-mono w-10 text-center">0°</span>
-<button onclick="changeRotate(15)" class="w-8 h-6 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 rounded"><i class="fas fa-redo text-[10px]"></i></button>
+<button onclick="changeRotate(-15)" class="w-8 h-6 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 rounded ui-grey-icon"><i class="fas fa-undo text-[10px]"></i></button>
+<span id="rotateVal" class="text-[10px] font-mono w-10 text-center ui-grey-text">0°</span>
+<button onclick="changeRotate(15)" class="w-8 h-6 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 rounded ui-grey-icon"><i class="fas fa-redo text-[10px]"></i></button>
 </div>
-<button onclick="toggleFlip()" class="bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 w-8 h-8 rounded-lg flex items-center justify-center transition-all">
+<button onclick="toggleFlip()" class="bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 w-8 h-8 rounded-lg flex items-center justify-center transition-all ui-grey-icon">
 <i class="fas fa-arrows-alt-h text-[12px]"></i>
 </button>
 </div>
-<div class="flex items-center gap-6 border-l border-white/10 pl-6">
+<div class="flex items-center gap-6 border-l border-black/5 dark:border-white/10 pl-6">
 <div class="flex flex-col w-32">
-<div class="flex justify-between items-center text-[9px] uppercase text-gray-500 font-bold mb-1">
+<div class="flex justify-between items-center text-[9px] uppercase ui-grey-text font-bold mb-1">
 <div class="flex items-center gap-2">
 <span>Size</span>
-<button id="btn-pressure-size" onclick="togglePressureSize()" class="text-[10px] text-gray-500 hover:text-[#D38E3F] transition-colors" title="Toggle Pen Pressure Size">
+<button id="btn-pressure-size" onclick="togglePressureSize()" class="text-[10px] ui-grey-icon hover:text-[#D38E3F] transition-colors" title="Toggle Pen Pressure Size">
 <i class="fas fa-compress-arrows-alt"></i>
 </button>
 </div>
-<span id="sizeVal">30px</span>
+<span id="sizeVal" class="editable-val" onclick="manualInput(this, 'sizeSlider', 1, 300, 'px')">30px</span>
 </div>
 <input type="range" id="sizeSlider" min="1" max="300" value="30">
 </div>
 <div class="flex flex-col w-36">
-<div class="flex justify-between items-center text-[9px] uppercase text-gray-500 font-bold mb-1">
+<div class="flex justify-between items-center text-[9px] uppercase ui-grey-text font-bold mb-1">
 <div class="flex items-center gap-2">
 <span>Brush Opacity</span>
-<button id="btn-pressure" onclick="togglePressure()" class="text-[10px] text-gray-500 hover:text-[#D38E3F] transition-colors" title="Toggle Pen Pressure Opacity">
+<button id="btn-pressure" onclick="togglePressure()" class="text-[10px] ui-grey-icon hover:text-[#D38E3F] transition-colors" title="Toggle Pen Pressure Opacity">
 <i class="fas fa-fingerprint"></i>
 </button>
 </div>
-<span id="opacityVal">100%</span>
+<span id="opacityVal" class="editable-val" onclick="manualInput(this, 'opacitySlider', 1, 100, '%')">100%</span>
 </div>
 <input type="range" id="opacitySlider" min="1" max="100" value="100">
 </div>
 </div>
 </div>
 <div class="flex items-center gap-3">
-<button id="themeToggle" onclick="toggleTheme()" class="p-2 text-gray-400 hover:text-[#D38E3F] transition-colors" title="Toggle Light/Dark Mode">
-<i class="fas fa-moon"></i>
+<button id="themeToggle" onclick="toggleTheme()" class="p-2 ui-grey-icon hover:text-[#D38E3F] transition-colors" title="Toggle Light/Dark Mode">
+<i class="fas fa-sun"></i>
 </button>
 <input type="file" id="chromaInput" class="hidden" accept=".chroma" onchange="handleChromaImport(event)">
 <input type="file" id="imageInput" class="hidden" accept="image/*" onchange="handleImageImport(event)">
@@ -320,27 +330,27 @@ Deselect
 <i class="fas fa-paint-brush"></i>
 </button>
 
-<button id="btn-eraser" class="tool-btn p-3 rounded-xl transition-all text-gray-500" onclick="setMode('eraser')" title="Eraser (E)">
+<button id="btn-eraser" class="tool-btn p-3 rounded-xl transition-all ui-grey-icon" onclick="setMode('eraser')" title="Eraser (E)">
 <i class="fas fa-eraser"></i>
 </button>
 
 <div class="relative flex flex-col items-center">
-<button id="btn-bucket" class="tool-btn p-3 rounded-xl transition-all text-gray-500"
+<button id="btn-bucket" class="tool-btn p-3 rounded-xl transition-all ui-grey-icon"
 onclick="toggleToolPopup('bucket')" title="Paint Bucket / Gradient (G)">
 <i id="bucket-icon" class="fas fa-fill-drip"></i>
 </button>
 <div id="bucket-popup" class="tool-popup hidden">
-<button onclick="setMode('bucket'); hideToolPopups()" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F]"><i class="fas fa-fill-drip"></i></button>
-<button onclick="setMode('gradient'); hideToolPopups()" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F]"><i class="fas fa-stream"></i></button>
+<button onclick="setMode('bucket'); hideToolPopups()" class="p-2 hover:bg-[#D38E3F]/10 rounded ui-grey-icon hover:text-[#D38E3F]"><i class="fas fa-fill-drip"></i></button>
+<button onclick="setMode('gradient'); hideToolPopups()" class="p-2 hover:bg-[#D38E3F]/10 rounded ui-grey-icon hover:text-[#D38E3F]"><i class="fas fa-stream"></i></button>
 </div>
 </div>
 
-<button id="btn-smudge" class="tool-btn p-3 rounded-xl transition-all text-gray-500" onclick="setMode('smudge')" title="Smudge (S)">
+<button id="btn-smudge" class="tool-btn p-3 rounded-xl transition-all ui-grey-icon" onclick="setMode('smudge')" title="Smudge (S)">
 <i class="fas fa-wind"></i>
 </button>
 
 <div class="relative flex flex-col items-center">
-<button id="btn-lasso" class="tool-btn p-3 rounded-xl transition-all text-gray-500"
+<button id="btn-lasso" class="tool-btn p-3 rounded-xl transition-all ui-grey-icon"
 onclick="toggleToolPopup('lasso')" title="Selection Tools (L, W)">
 <svg id="lasso-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
 <path d="M12,2A10,10,0,0,0,2,12a10,10,0,0,0,10,10,10,10,0,0,0,10-10A10,10,0,0,0,12,2Zm0,18a8,8,0,1,1,8-8A8,8,0,0,1,12,20Zm4.5-9a1.5,1.5,0,1,1-1.5,1.5A1.5,1.5,0,0,1,16.5,11Zm-9,0a1.5,1.5,0,1,1-1.5,1.5A1.5,1.5,0,0,1,7.5,11Zm4.5,5a1.5,1.5,0,1,1,0-3,1.5,1.5,0,0,1,0,3Z" opacity="0.3"/>
@@ -348,46 +358,46 @@ onclick="toggleToolPopup('lasso')" title="Selection Tools (L, W)">
 </svg>
 </button>
 <div id="lasso-popup" class="tool-popup hidden">
-<button onclick="setMode('lasso'); hideToolPopups()" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F]" title="Lasso Selection (L)">
+<button onclick="setMode('lasso'); hideToolPopups()" class="p-2 hover:bg-[#D38E3F]/10 rounded ui-grey-icon hover:text-[#D38E3F]" title="Lasso Selection (L)">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12,5c-3.86,0-7,3.14-7,7s3.14,7,7,7,7-3.14,7-7S15.86,5,12,5Zm4,7a2,2,0,1,1-2-2A2,2,0,0,1,16,12Zm-8,0a2,2,0,1,1-2-2A2,2,0,0,1,8,12Z"/></svg>
 </button>
-<button onclick="setMode('poly-lasso'); hideToolPopups()" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F]" title="Polygonal Lasso">
+<button onclick="setMode('poly-lasso'); hideToolPopups()" class="p-2 hover:bg-[#D38E3F]/10 rounded ui-grey-icon hover:text-[#D38E3F]" title="Polygonal Lasso">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12,2L4.5,20.29L5.21,21L12,18L18.79,21L19.5,20.29L12,2Z"/></svg>
 </button>
-<button onclick="setMode('wand'); hideToolPopups()" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F]" title="Magic Wand (W)">
+<button onclick="setMode('wand'); hideToolPopups()" class="p-2 hover:bg-[#D38E3F]/10 rounded ui-grey-icon hover:text-[#D38E3F]" title="Magic Wand (W)">
     <i class="fas fa-wand-magic-sparkles"></i>
 </button>
 </div>
 </div>
 
 <div class="relative flex flex-col items-center">
-<button id="btn-shapes" class="tool-btn p-3 rounded-xl transition-all text-gray-500"
+<button id="btn-shapes" class="tool-btn p-3 rounded-xl transition-all ui-grey-icon"
 onclick="toggleToolPopup('shapes')" title="Shapes (Rectangle, Ellipse, Line)">
 <i id="shape-icon" class="fas fa-shapes"></i>
 </button>
 <div id="shapes-popup" class="tool-popup hidden">
-<button onclick="setMode('rect'); hideToolPopups()" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F]"><i class="far fa-square"></i></button>
-<button onclick="setMode('ellipse'); hideToolPopups()" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F]"><i class="far fa-circle"></i></button>
-<button onclick="setMode('line'); hideToolPopups()" class="p-2 hover:bg-[#D38E3F]/10 rounded text-gray-400 hover:text-[#D38E3F]"><i class="fas fa-minus"></i></button>
+<button onclick="setMode('rect'); hideToolPopups()" class="p-2 hover:bg-[#D38E3F]/10 rounded ui-grey-icon hover:text-[#D38E3F]"><i class="far fa-square"></i></button>
+<button onclick="setMode('ellipse'); hideToolPopups()" class="p-2 hover:bg-[#D38E3F]/10 rounded ui-grey-icon hover:text-[#D38E3F]"><i class="far fa-circle"></i></button>
+<button onclick="setMode('line'); hideToolPopups()" class="p-2 hover:bg-[#D38E3F]/10 rounded ui-grey-icon hover:text-[#D38E3F]"><i class="fas fa-minus"></i></button>
 </div>
 </div>
 
-<div class="w-8 h-px bg-black/10 dark:bg-white/10"></div>
-<button id="btn-brush-library" class="tool-btn p-3 rounded-xl transition-all text-gray-500" onclick="toggleBrushLibrary()" title="Brush Library">
+<div class="w-8 h-px bg-black/5 dark:bg-white/10"></div>
+<button id="btn-brush-library" class="tool-btn p-3 rounded-xl transition-all ui-grey-icon" onclick="toggleBrushLibrary()" title="Brush Library">
 <i class="fas fa-toolbox"></i>
 </button>
 
-<button id="btn-brush-settings" class="tool-btn p-2 rounded-lg text-gray-500" onclick="toggleBrushSettings()" title="Brush Settings">
+<button id="btn-brush-settings" class="tool-btn p-2 rounded-lg ui-grey-icon" onclick="toggleBrushSettings()" title="Brush Settings">
 <div class="relative w-5 h-5 flex items-center justify-center">
 <i class="fas fa-paint-brush text-[12px]"></i>
 <i class="fas fa-cog absolute -bottom-0.5 -right-0.5 text-[8px] bg-white dark:bg-zinc-900 rounded-full"></i>
 </div>
 </button>
 
-<div class="w-8 h-px bg-black/10 dark:bg-white/10"></div>
+<div class="w-8 h-px bg-black/5 dark:bg-white/10"></div>
 <div class="relative w-8 h-10">
-<div id="secondaryColorPreview" onclick="setActiveColorTarget('secondary')" class="absolute right-0 bottom-0 w-6 h-6 rounded-md border border-white/10 cursor-pointer shadow-lg z-10" style="background-color: #ffffff;" title="Secondary Color (Click to edit)"></div>
-<div id="activeColorPreview" onclick="setActiveColorTarget('primary')" class="absolute left-0 top-0 w-6 h-6 rounded-md border-2 border-white/20 shadow-xl z-20 color-preview-active" style="background-color: #D38E3F;" title="Primary Color (Click to edit)"></div>
+<div id="secondaryColorPreview" onclick="setActiveColorTarget('secondary')" class="absolute right-0 bottom-0 w-6 h-6 rounded-md border border-black/10 dark:border-white/10 cursor-pointer shadow-lg z-10" style="background-color: #ffffff;" title="Secondary Color (Click to edit)"></div>
+<div id="activeColorPreview" onclick="setActiveColorTarget('primary')" class="absolute left-0 top-0 w-6 h-6 rounded-md border-2 border-black/10 dark:border-white/20 shadow-xl z-20 color-preview-active" style="background-color: #D38E3F;" title="Primary Color (Click to edit)"></div>
 </div>
 </aside>
 <main id="viewport" class="flex-1 relative canvas-container flex items-center justify-center overflow-hidden">
@@ -400,13 +410,13 @@ onclick="toggleToolPopup('shapes')" title="Shapes (Rectangle, Ellipse, Line)">
 <aside class="w-80 ui-panel flex flex-col border-l z-40">
 <div class="p-5 border-b">
 <div class="relative mb-4">
-<div class="border border-white/10 rounded-xl hover:border-[#D38E3F]/40 transition-all">
-<select id="rightPanelModeSelect" onchange="toggleRightPanelMode(this.value)" class="w-full bg-transparent border-none text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] cursor-pointer outline-none appearance-none py-3 px-4 pr-10">
-<option value="adjustments" class="bg-zinc-900 text-white">Adjustments</option>
-<option value="filters" class="bg-zinc-900 text-white">Filters</option>
-<option value="edit" class="bg-zinc-900 text-white">Edit</option>
+<div class="border border-black/10 dark:border-white/10 rounded-xl hover:border-[#D38E3F]/40 transition-all">
+<select id="rightPanelModeSelect" onchange="toggleRightPanelMode(this.value)" class="w-full bg-transparent border-none text-[10px] font-bold ui-grey-text uppercase tracking-[0.2em] cursor-pointer outline-none appearance-none py-3 px-4 pr-10">
+<option value="adjustments">Adjustments</option>
+<option value="filters">Filters</option>
+<option value="edit">Edit</option>
 </select>
-<div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 text-[8px]">
+<div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none ui-grey-text text-[8px]">
 <i class="fas fa-chevron-down"></i>
 </div>
 </div>
@@ -426,21 +436,21 @@ onclick="toggleToolPopup('shapes')" title="Shapes (Rectangle, Ellipse, Line)">
 </div>
 <div class="flex-1 flex flex-col min-h-0">
 <div class="p-5 flex items-center justify-between">
-<h3 class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">Layers</h3>
+<h3 class="text-[10px] font-bold ui-grey-text uppercase tracking-[0.2em]">Layers</h3>
 <div class="flex gap-3 items-center">
-<button onclick="addLayer()" class="text-gray-400 hover:text-[#D38E3F] transition-colors" title="New Layer (Ctrl+N)">
+<button onclick="addLayer()" class="ui-grey-icon hover:text-[#D38E3F] transition-colors" title="New Layer (Ctrl+N)">
 <i class="fas fa-plus-square"></i>
 </button>
-<button onclick="addGroup()" class="text-gray-400 hover:text-[#D38E3F] transition-colors" title="New Group">
+<button onclick="addGroup()" class="ui-grey-icon hover:text-[#D38E3F] transition-colors" title="New Group">
 <i class="fas fa-folder-plus"></i>
 </button>
-<button onclick="duplicateLayer()" class="text-gray-400 hover:text-[#D38E3F] transition-colors" title="Duplicate Layer (Ctrl+J)">
+<button onclick="duplicateLayer()" class="ui-grey-icon hover:text-[#D38E3F] transition-colors" title="Duplicate Layer (Ctrl+J)">
 <i class="fas fa-copy"></i>
 </button>
-<button onclick="mergeDown()" class="text-gray-400 hover:text-[#D38E3F] transition-colors" title="Merge Down (Ctrl+E)">
+<button onclick="mergeDown()" class="ui-grey-icon hover:text-[#D38E3F] transition-colors" title="Merge Down (Ctrl+E)">
 <i class="fas fa-level-down-alt"></i>
 </button>
-<button onclick="addLayerMask()" class="text-gray-400 hover:text-[#D38E3F] transition-colors" title="Add Layer Mask (Alt for Black Mask)">
+<button onclick="addLayerMask()" class="ui-grey-icon hover:text-[#D38E3F] transition-colors" title="Add Layer Mask (Alt for Black Mask)">
 <i class="fas fa-circle-dot"></i>
 </button>
 </div>
@@ -458,17 +468,17 @@ onclick="toggleToolPopup('shapes')" title="Shapes (Rectangle, Ellipse, Line)">
             <i class="fas fa-grip-lines ml-2"></i>
         </div>
     </div>
-    <div id="refPreviewContainer" class="bg-black/40 rounded-xl mb-4 overflow-hidden flex items-center justify-center flex-1 min-h-[160px]">
+    <div id="refPreviewContainer" class="bg-black/10 dark:bg-black/40 rounded-xl mb-4 overflow-hidden flex items-center justify-center flex-1 min-h-[160px]">
         <canvas id="refCanvas"></canvas>
     </div>
     <div class="space-y-4">
         <div class="flex flex-col">
-            <div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Navigator Zoom</span><span id="refZoomVal">100%</span></div>
+            <div class="flex justify-between text-[8px] uppercase font-bold ui-grey-text"><span>Navigator Zoom</span><span id="refZoomVal">100%</span></div>
             <input type="range" id="refZoomSlider" min="0.1" max="5" step="0.1" value="1" class="hsb-track">
         </div>
         <div class="flex gap-2">
             <button onclick="triggerRefImageImport()" class="flex-1 py-1.5 bg-[#D38E3F]/10 hover:bg-[#D38E3F]/20 text-[#D38E3F] text-[8px] font-black uppercase rounded-lg border border-[#D38E3F]/20 transition-all">Import Ref</button>
-            <button onclick="toggleRefWindow()" class="flex-1 py-1.5 bg-black/20 text-gray-500 text-[8px] font-bold uppercase rounded-lg">Close</button>
+            <button onclick="toggleRefWindow()" class="flex-1 py-1.5 bg-black/5 dark:bg-black/20 ui-grey-text text-[8px] font-bold uppercase rounded-lg">Close</button>
         </div>
         <input type="file" id="refImageInput" class="hidden" accept="image/*" onchange="handleRefImageImport(event)">
     </div>
@@ -482,78 +492,82 @@ onclick="toggleToolPopup('shapes')" title="Shapes (Rectangle, Ellipse, Line)">
 <div id="brushLibraryGrid" class="grid grid-cols-4 gap-2 max-h-[40vh] overflow-y-auto pr-1 flex-1"></div>
 <div class="flex flex-col gap-2 mt-4 flex-shrink-0">
     <div class="flex gap-2">
-        <button onclick="exportBrushes()" class="flex-1 py-1.5 bg-black/20 hover:bg-black/40 text-[8px] font-black uppercase rounded-lg border border-white/5 transition-all" title="Export whole library as one set">Export Library</button>
-        <button onclick="exportBrushes(true)" class="flex-1 py-1.5 bg-black/20 hover:bg-black/40 text-[8px] font-black uppercase rounded-lg border border-white/5 transition-all" title="Export only the selected brush with its settings">Export Active</button>
+        <button onclick="exportBrushes()" class="flex-1 py-1.5 bg-black/5 dark:bg-black/20 hover:bg-black/10 dark:hover:bg-black/40 text-[8px] font-black uppercase rounded-lg border border-black/5 dark:border-white/5 transition-all" title="Export whole library as one set">Export Library</button>
+        <button onclick="exportBrushes(true)" class="flex-1 py-1.5 bg-black/5 dark:bg-black/20 hover:bg-black/10 dark:hover:bg-black/40 text-[8px] font-black uppercase rounded-lg border border-black/5 dark:border-white/5 transition-all" title="Export only the selected brush with its settings">Export Active</button>
     </div>
-    <button onclick="triggerBrushImport()" class="w-full py-1.5 bg-black/20 hover:bg-black/40 text-[8px] font-black uppercase rounded-lg border border-white/5 transition-all" title="Import .chromabrushes files">Import Brushes</button>
+    <button onclick="triggerBrushImport()" class="w-full py-1.5 bg-black/5 dark:bg-black/20 hover:bg-black/10 dark:hover:bg-black/40 text-[8px] font-black uppercase rounded-lg border border-black/5 dark:border-white/5 transition-all" title="Import .chromabrushes files">Import Brushes</button>
     <input type="file" id="brushImportInput" class="hidden" accept=".chromabrushes" multiple onchange="importBrushes(event)">
 </div>
 <button onclick="toggleBrushLibrary()" class="mt-2 w-full py-2 bg-[#D38E3F] text-white text-[9px] font-bold uppercase rounded-lg">Close</button>
 </div>
+
 <div id="brushSettingsPanel" class="draggable-panel hidden right-[340px] top-[150px] w-72 ui-panel rounded-3xl p-5 shadow-2xl border">
 <div class="panel-header flex justify-between items-center mb-4 text-[9px] font-bold uppercase text-[#D38E3F] tracking-wider">
 <span>Brush Settings</span>
 <i class="fas fa-grip-lines"></i>
 </div>
-<div class="w-full h-20 bg-black/20 rounded-xl mb-4 overflow-hidden flex items-center justify-center flex-shrink-0">
+<div class="w-full h-20 bg-black/5 dark:bg-black/20 rounded-xl mb-4 overflow-hidden flex items-center justify-center flex-shrink-0">
 <canvas id="brushPreviewCanvas" width="260" height="80"></canvas>
 </div>
 <div class="space-y-4 pr-2 max-h-[50vh] overflow-y-auto">
 <div>
-<div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Spacing</span><span id="bs-spacing-val">1%</span></div>
+<div class="flex justify-between text-[8px] uppercase font-bold ui-grey-text"><span>Spacing</span><span id="bs-spacing-val" class="editable-val" onclick="manualInput(this, 'bs-spacing', 1, 100, '%')">1%</span></div>
 <input type="range" id="bs-spacing" min="1" max="100" value="1" class="hsb-track">
 </div>
 <div>
-<div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Hardness</span><span id="bs-hardness-val">100%</span></div>
+<div class="flex justify-between text-[8px] uppercase font-bold ui-grey-text"><span>Hardness</span><span id="bs-hardness-val" class="editable-val" onclick="manualInput(this, 'bs-hardness', 0, 100, '%')">100%</span></div>
 <input type="range" id="bs-hardness" min="0" max="100" value="100" class="hsb-track">
 </div>
 <div>
-<div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Flow</span><span id="bs-flow-val">100%</span></div>
+<div class="flex justify-between text-[8px] uppercase font-bold ui-grey-text"><span>Flow</span><span id="bs-flow-val" class="editable-val" onclick="manualInput(this, 'bs-flow', 1, 100, '%')">100%</span></div>
 <input type="range" id="bs-flow" min="1" max="100" value="100" class="hsb-track">
 </div>
 <div>
-<div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Scatter</span><span id="bs-scatter-val">0</span></div>
+<div class="flex justify-between text-[8px] uppercase font-bold ui-grey-text"><span>Scatter</span><span id="bs-scatter-val" class="editable-val" onclick="manualInput(this, 'bs-scatter', 0, 100, '')">0</span></div>
 <input type="range" id="bs-scatter" min="0" max="100" step="1" value="0" class="hsb-track">
 </div>
 <div>
-    <div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Angle Jitter</span><span id="bs-angleJitter-val">0%</span></div>
+    <div class="flex justify-between text-[8px] uppercase font-bold ui-grey-text"><span>Angle Jitter</span><span id="bs-angleJitter-val" class="editable-val" onclick="manualInput(this, 'bs-angleJitter', 0, 100, '%')">0%</span></div>
     <input type="range" id="bs-angleJitter" min="0" max="100" step="1" value="0" class="hsb-track">
 </div>
-<div class="pt-2 border-t border-white/5">
+<div class="pt-2 border-t border-black/5 dark:border-white/5">
     <h4 class="text-[8px] uppercase font-black text-[#D38E3F] mb-3">Texture</h4>
     <div class="space-y-3">
+        <div id="texturePreview" class="w-full h-12 bg-black/5 dark:bg-black/20 rounded-lg flex items-center justify-center overflow-hidden border border-black/5">
+            <canvas id="texturePreviewCanvas" width="260" height="48"></canvas>
+        </div>
         <div class="flex gap-2">
-            <button onclick="triggerBrushTextureImport()" class="flex-1 py-1.5 bg-black/20 hover:bg-black/40 text-[8px] font-bold uppercase rounded-lg border border-white/5 transition-all">Load Texture</button>
-            <button onclick="clearBrushTexture()" class="px-2 py-1.5 bg-black/20 hover:bg-red-900/20 text-[8px] font-bold uppercase rounded-lg border border-white/5 transition-all"><i class="fas fa-trash"></i></button>
+            <button onclick="triggerBrushTextureImport()" class="flex-1 py-1.5 bg-black/5 dark:bg-black/20 hover:bg-black/10 dark:hover:bg-black/40 text-[8px] font-bold uppercase rounded-lg border border-black/5 dark:border-white/5 transition-all">Load Texture</button>
+            <button onclick="clearBrushTexture()" class="px-2 py-1.5 bg-black/5 dark:bg-black/20 hover:bg-red-900/20 text-[8px] font-bold uppercase rounded-lg border border-black/5 dark:border-white/5 transition-all"><i class="fas fa-trash"></i></button>
         </div>
         <div>
-            <div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Density</span><span id="bs-textureDensity-val">100%</span></div>
+            <div class="flex justify-between text-[8px] uppercase font-bold ui-grey-text"><span>Density</span><span id="bs-textureDensity-val" class="editable-val" onclick="manualInput(this, 'bs-textureDensity', 1, 100, '%')">100%</span></div>
             <input type="range" id="bs-textureDensity" min="1" max="100" value="100" class="hsb-track">
         </div>
         <div>
-            <div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Scale</span><span id="bs-textureScale-val">100%</span></div>
-            <input type="range" id="bs-textureScale" min="10" max="500" value="100" class="hsb-track">
+            <div class="flex justify-between text-[8px] uppercase font-bold ui-grey-text"><span>Scale</span><span id="bs-textureScale-val" class="editable-val" onclick="manualInput(this, 'bs-textureScale', 1, 500, '%')">100%</span></div>
+            <input type="range" id="bs-textureScale" min="1" max="500" value="100" class="hsb-track">
         </div>
         <input type="file" id="brushTextureInput" class="hidden" accept="image/*" onchange="handleBrushTextureImport(event)">
     </div>
 </div>
-<div class="pt-2 border-t border-white/5">
+<div class="pt-2 border-t border-black/5 dark:border-white/5">
 <h4 class="text-[8px] uppercase font-black text-[#D38E3F] mb-3">Color Dynamics</h4>
 <div class="space-y-3">
 <div>
-<div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Hue Jitter</span><span id="bs-hueJitter-val">0%</span></div>
+<div class="flex justify-between text-[8px] uppercase font-bold ui-grey-text"><span>Hue Jitter</span><span id="bs-hueJitter-val" class="editable-val" onclick="manualInput(this, 'bs-hueJitter', 0, 100, '%')">0%</span></div>
 <input type="range" id="bs-hueJitter" min="0" max="100" value="0" class="hsb-track">
 </div>
 <div>
-<div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Sat Jitter</span><span id="bs-satJitter-val">0%</span></div>
+<div class="flex justify-between text-[8px] uppercase font-bold ui-grey-text"><span>Sat Jitter</span><span id="bs-satJitter-val" class="editable-val" onclick="manualInput(this, 'bs-satJitter', 0, 100, '%')">0%</span></div>
 <input type="range" id="bs-satJitter" min="0" max="100" value="0" class="hsb-track">
 </div>
 <div>
-<div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Value Jitter</span><span id="bs-briJitter-val">0%</span></div>
+<div class="flex justify-between text-[8px] uppercase font-bold ui-grey-text"><span>Value Jitter</span><span id="bs-briJitter-val" class="editable-val" onclick="manualInput(this, 'bs-briJitter', 0, 100, '%')">0%</span></div>
 <input type="range" id="bs-briJitter" min="0" max="100" value="0" class="hsb-track">
 </div>
 <div class="flex items-center justify-between pt-1">
-<span class="text-[8px] uppercase font-bold text-gray-500">Jitter Mode</span>
+<span class="text-[8px] uppercase font-bold ui-grey-text">Jitter Mode</span>
 <select id="bs-jitterMode" class="w-24 text-[8px]">
 <option value="tip">Per Tip</option>
 <option value="stroke">Per Stroke</option>
@@ -564,8 +578,9 @@ onclick="toggleToolPopup('shapes')" title="Shapes (Rectangle, Ellipse, Line)">
 </div>
 <button onclick="toggleBrushSettings()" class="mt-6 w-full py-2 bg-[#D38E3F] text-white text-[9px] font-bold uppercase rounded-lg flex-shrink-0">Close</button>
 </div>
+
 <div id="colorPanel" class="draggable-panel left-[80px] bottom-[100px] w-64 ui-panel rounded-3xl p-5 shadow-2xl border">
-<div class="panel-header flex justify-between items-center mb-3 text-[9px] font-bold uppercase text-gray-500 tracking-wider">
+<div class="panel-header flex justify-between items-center mb-3 text-[9px] font-bold uppercase ui-grey-text tracking-wider">
 <span id="hexDisplay">#D38E3F</span>
 <i class="fas fa-grip-lines"></i>
 </div>
@@ -575,15 +590,15 @@ onclick="toggleToolPopup('shapes')" title="Shapes (Rectangle, Ellipse, Line)">
 <input type="range" id="hueBar" min="0" max="360" value="32" class="w-full mb-4 flex-shrink-0">
 <div class="space-y-2 mt-2">
 <div class="flex flex-col">
-<div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Hue</span><span id="hLabel">32</span></div>
+<div class="flex justify-between text-[8px] uppercase font-bold ui-grey-text"><span>Hue</span><span id="hLabel" class="editable-val" onclick="manualInput(this, 'slider-h', 0, 360, '')">32</span></div>
 <input type="range" id="slider-h" min="0" max="360" value="32" class="hsb-track">
 </div>
 <div class="flex flex-col">
-<div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Saturation</span><span id="sLabel">70%</span></div>
+<div class="flex justify-between text-[8px] uppercase font-bold ui-grey-text"><span>Saturation</span><span id="sLabel" class="editable-val" onclick="manualInput(this, 'slider-s', 0, 100, '%')">70%</span></div>
 <input type="range" id="slider-s" min="0" max="100" value="70" class="hsb-track">
 </div>
 <div class="flex flex-col">
-<div class="flex justify-between text-[8px] uppercase font-bold text-gray-500"><span>Brightness</span><span id="vLabel">83%</span></div>
+<div class="flex justify-between text-[8px] uppercase font-bold ui-grey-text"><span>Brightness</span><span id="vLabel" class="editable-val" onclick="manualInput(this, 'slider-v', 0, 100, '%')">83%</span></div>
 <input type="range" id="slider-v" min="0" max="100" value="83" class="hsb-track">
 </div>
 </div>
@@ -597,11 +612,11 @@ onclick="toggleToolPopup('shapes')" title="Shapes (Rectangle, Ellipse, Line)">
 <div class="mt-8 flex items-center justify-between px-1">
     <div class="flex items-center gap-2">
         <input type="checkbox" id="adjPreviewToggle" checked onchange="runAdj()" class="w-3 h-3 accent-[#D38E3F] cursor-pointer">
-        <label for="adjPreviewToggle" class="text-[9px] font-bold uppercase text-gray-500 cursor-pointer">Preview</label>
+        <label for="adjPreviewToggle" class="text-[9px] font-bold uppercase ui-grey-text cursor-pointer">Preview</label>
     </div>
 </div>
 <div class="flex gap-4 mt-4">
-<button onclick="cancelAdj()" class="flex-1 py-3 text-[9px] font-bold uppercase text-gray-500 hover:text-[#D38E3F] transition-colors">Cancel</button>
+<button onclick="cancelAdj()" class="flex-1 py-3 text-[9px] font-bold uppercase ui-grey-text hover:text-[#D38E3F] transition-colors">Cancel</button>
 <button onclick="confirmAdj()" class="flex-1 py-3 bg-[#D38E3F] rounded-xl text-[9px] font-bold uppercase text-white">Apply</button>
 </div>
 </div>
@@ -634,7 +649,7 @@ onclick="toggleToolPopup('shapes')" title="Shapes (Rectangle, Ellipse, Line)">
             </div>
         </div>
         <div class="flex gap-4 mt-8">
-            <button onclick="hideNewProjectModal()" class="flex-1 py-3 text-[9px] font-bold uppercase text-gray-500 hover:text-white transition-colors">Cancel</button>
+            <button onclick="hideNewProjectModal()" class="flex-1 py-3 text-[9px] font-bold uppercase ui-grey-text hover:text-white transition-colors">Cancel</button>
             <button onclick="confirmNewProject()" class="flex-1 py-3 bg-[#D38E3F] rounded-xl text-[9px] font-bold uppercase text-white">Create</button>
         </div>
     </div>
@@ -941,7 +956,6 @@ function setupDefaultBrushes() {
         { id: 'flat', type: 'flat', name: 'Flat', settings: { spacing: 0.01, texture: null } }
     ];
 
-    // Draftsman Pencil
     const pencilCanvas = document.createElement('canvas');
     pencilCanvas.width = pencilCanvas.height = 256;
     const pctx = pencilCanvas.getContext('2d');
@@ -967,7 +981,6 @@ function setupDefaultBrushes() {
     pctx.putImageData(pData, 0, 0);
     brushLibrary.push({ id: 'draftsman_pencil', type: 'custom', name: 'Draftsman Pencil', mask: pencilCanvas.toDataURL(), canvas: pencilCanvas, settings: { spacing: 0.01, hardness: 1.0, flow: 1.0, scatter: 0.0, angleJitter: 0.0, hueJitter: 0, satJitter: 0, briJitter: 0, jitterMode: 'tip', textureDensity: 1.0, texture: null } });
 
-    // Rake Brush
     const rakeCanvas = document.createElement('canvas');
     rakeCanvas.width = rakeCanvas.height = 256;
     const rctx = rakeCanvas.getContext('2d');
@@ -980,7 +993,6 @@ function setupDefaultBrushes() {
     }
     brushLibrary.push({ id: 'rake', type: 'custom', name: 'Rake', mask: rakeCanvas.toDataURL(), canvas: rakeCanvas, settings: { spacing: 0.01, hardness: 1.0, flow: 1.0, scatter: 0.0, angleJitter: 0.0, texture: null } });
 
-    // Hatching Brush (Smooth pill)
     const hatchingCanvas = document.createElement('canvas');
     hatchingCanvas.width = hatchingCanvas.height = 256;
     const hctx = hatchingCanvas.getContext('2d');
@@ -990,29 +1002,27 @@ function setupDefaultBrushes() {
     hctx.fill();
     brushLibrary.push({ id: 'hatching', type: 'custom', name: 'Hatching', mask: hatchingCanvas.toDataURL(), canvas: hatchingCanvas, settings: { spacing: 0.34, hardness: 1.0, flow: 1.0, scatter: 0.0, angleJitter: 0.0, texture: null } });
 
-    // Halftone Texture (Circles)
+    // Built-in textured brushes - Using black on white and alphaifying to match engine logic
     const htCanvas = document.createElement('canvas'); htCanvas.width = htCanvas.height = 128;
     const htCtx = htCanvas.getContext('2d'); 
-    htCtx.fillStyle = 'white';
-    htCtx.beginPath(); htCtx.arc(64, 64, 48, 0, Math.PI * 2); htCtx.fill();
-    brushLibrary.push({ id: 'halftone', type: 'round', name: 'Halftone', settings: { spacing: 0.01, texture: htCanvas, textureDensity: 1.0, textureScale: 0.4 } });
+    htCtx.fillStyle = 'white'; htCtx.fillRect(0,0,128,128);
+    htCtx.fillStyle = 'black'; htCtx.beginPath(); htCtx.arc(64, 64, 48, 0, Math.PI * 2); htCtx.fill();
+    brushLibrary.push({ id: 'halftone', type: 'round', name: 'Halftone', settings: { spacing: 0.01, texture: alphaifyTexture(htCanvas), textureDensity: 1.0, textureScale: 18 } });
 
-    // Square Halftone Texture
     const shtCanvas = document.createElement('canvas'); shtCanvas.width = shtCanvas.height = 128;
     const shtCtx = shtCanvas.getContext('2d'); 
-    shtCtx.fillStyle = 'white';
-    shtCtx.fillRect(16, 16, 96, 96);
-    brushLibrary.push({ id: 'sq_halftone', type: 'round', name: 'Square Halftone', settings: { spacing: 0.01, texture: shtCanvas, textureDensity: 1.0, textureScale: 0.4 } });
+    shtCtx.fillStyle = 'white'; shtCtx.fillRect(0,0,128,128);
+    shtCtx.fillStyle = 'black'; shtCtx.fillRect(16, 16, 96, 96);
+    brushLibrary.push({ id: 'sq_halftone', type: 'round', name: 'Square Halftone', settings: { spacing: 0.01, texture: alphaifyTexture(shtCanvas), textureDensity: 1.0, textureScale: 18 } });
 
-    // Scribble Texture
     const scribCanvas = document.createElement('canvas'); scribCanvas.width = scribCanvas.height = 256;
     const sctx = scribCanvas.getContext('2d'); 
-    sctx.strokeStyle = 'white'; sctx.lineWidth = 4;
-    sctx.beginPath();
-    sctx.moveTo(128, 128);
+    sctx.fillStyle = 'white'; sctx.fillRect(0,0,256,256);
+    sctx.strokeStyle = 'black'; sctx.lineWidth = 4;
+    sctx.beginPath(); sctx.moveTo(128, 128);
     for(let i=0; i<60; i++) { sctx.lineTo(Math.random()*256, Math.random()*256); }
     sctx.stroke();
-    brushLibrary.push({ id: 'scribble', type: 'round', name: 'Scribble', settings: { spacing: 0.01, texture: scribCanvas, textureDensity: 0.9, textureScale: 1.0 } });
+    brushLibrary.push({ id: 'scribble', type: 'round', name: 'Scribble', settings: { spacing: 0.01, texture: alphaifyTexture(scribCanvas), textureDensity: 0.9, textureScale: 100 } });
 }
 
 function handleSystemPaste(e) {
@@ -1252,6 +1262,35 @@ function toggleRightPanelMode(mode) {
     document.getElementById('editPanelContainer').classList.toggle('hidden', mode !== 'edit');
 }
 
+function manualInput(el, sliderId, min, max, unit) {
+    const originalText = el.innerText;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = originalText.replace(unit, '');
+    input.className = 'bg-[#ebebeb] dark:bg-[#1a1a1a] text-[#4b5563] dark:text-white border border-[#D38E3F] rounded px-1 w-12 text-center outline-none';
+    
+    const finish = () => {
+        let val = parseFloat(input.value);
+        if (isNaN(val)) val = parseFloat(originalText.replace(unit, ''));
+        val = Math.max(min, Math.min(max, val));
+        const slider = document.getElementById(sliderId);
+        slider.value = val;
+        slider.dispatchEvent(new Event('input'));
+        el.innerText = val + unit;
+        input.replaceWith(el);
+    };
+
+    input.onblur = finish;
+    input.onkeydown = (e) => {
+        if (e.key === 'Enter') finish();
+        if (e.key === 'Escape') input.replaceWith(el);
+    };
+
+    el.replaceWith(input);
+    input.focus();
+    input.select();
+}
+
 function updateBrushPreview() {
     const pc = document.getElementById('brushPreviewCanvas'); if (!pc) return;
     const pctx = pc.getContext('2d'); pctx.clearRect(0, 0, pc.width, pc.height);
@@ -1271,6 +1310,28 @@ function updateBrushPreview() {
         }
         lx = x; ly = y;
     }
+    updateTexturePreview();
+}
+
+function updateTexturePreview() {
+    const tc = document.getElementById('texturePreviewCanvas'); if(!tc) return;
+    const tctx = tc.getContext('2d'); tctx.clearRect(0, 0, tc.width, tc.height);
+    if (!brushSettings.texture) {
+        tctx.fillStyle = '#6b7280'; tctx.font = '8px Inter'; tctx.textAlign = 'center';
+        tctx.fillText('No Texture Active', tc.width/2, tc.height/2 + 4); return;
+    }
+    tctx.save();
+    const pattern = tctx.createPattern(brushSettings.texture, 'repeat');
+    if (pattern) {
+        const matrix = new DOMMatrix();
+        const s = brushSettings.textureScale / 100;
+        matrix.scaleSelf(s, s);
+        pattern.setTransform(matrix);
+        tctx.fillStyle = pattern;
+        tctx.globalAlpha = brushSettings.textureDensity;
+        tctx.fillRect(0, 0, tc.width, tc.height);
+    }
+    tctx.restore();
 }
 
 function triggerChromaImport() {
@@ -1368,7 +1429,7 @@ function setupBrushEngineUI() {
         slider.oninput = (e) => { 
             const val = parseFloat(e.target.value) / multiplier; 
             brushSettings[key] = val; 
-            label.innerText = isPercent ? Math.round(val * 100) + '%' : e.target.value; 
+            label.innerText = isPercent ? Math.round(val * multiplier) + '%' : e.target.value; 
             updateBrushPreview(); 
         };
     };
@@ -1378,43 +1439,37 @@ function setupBrushEngineUI() {
     bind('bs-scatter', 'scatter', 1, false); 
     bind('bs-angleJitter', 'angleJitter', 100);
     bind('bs-textureDensity', 'textureDensity', 100);
-    bind('bs-textureScale', 'textureScale', 100);
+    bind('bs-textureScale', 'textureScale', 1, true); // Changed to true for consistency
     bind('bs-hueJitter', 'hueJitter', 100); 
     bind('bs-satJitter', 'satJitter', 100); 
     bind('bs-briJitter', 'briJitter', 100);
     document.getElementById('bs-jitterMode').onchange = (e) => { brushSettings.jitterMode = e.target.value; updateBrushPreview(); };
 }
 
-function startToolHold(m) { }
-function endToolHold(m) { }
 function toggleBrushSettings() { const panel = document.getElementById('brushSettingsPanel'); panel.classList.toggle('hidden'); if(!panel.classList.contains('hidden')) { bringToFront(panel); updateBrushPreview(); } document.getElementById('btn-brush-settings').classList.toggle('active', !panel.classList.contains('hidden')); }
 function toggleBrushLibrary() { const panel = document.getElementById('brushLibraryPanel'); panel.classList.toggle('hidden'); if(!panel.classList.contains('hidden')) bringToFront(panel); document.getElementById('btn-brush-library').classList.toggle('active', !panel.classList.contains('hidden')); }
 
 function renderBrushLibrary() {
     const grid = document.getElementById('brushLibraryGrid'); grid.innerHTML = '';
-    const isLight = document.body.classList.contains('light-mode');
-    const previewColor = isLight ? '#4b5563' : 'rgba(255,255,255,0.5)';
+    const isDark = document.body.classList.contains('dark-mode');
+    const previewColor = isDark ? 'rgba(255,255,255,0.5)' : '#4b5563';
     
     brushLibrary.forEach(brush => {
         const item = document.createElement('div'); const isActive = brushTip === brush.id;
         item.className = `brush-grid-item ${isActive ? 'active' : ''}`; item.title = brush.name;
-        if (brush.type === 'round') item.innerHTML = `<div class="w-6 h-6 rounded-full border border-white/20" style="background-color: ${previewColor}"></div>`;
-        else if (brush.type === 'flat') item.innerHTML = `<div class="w-6 h-2 border border-white/20" style="background-color: ${previewColor}"></div>`;
+        if (brush.type === 'round') item.innerHTML = `<div class="w-6 h-6 rounded-full border border-black/10 dark:border-white/20" style="background-color: ${previewColor}"></div>`;
+        else if (brush.type === 'flat') item.innerHTML = `<div class="w-6 h-2 border border-black/10 dark:border-white/20" style="background-color: ${previewColor}"></div>`;
         else if (brush.type === 'custom') {
             const img = new Image(); img.src = brush.mask; img.className = "w-8 h-8 object-contain opacity-70"; 
-            if (isLight) img.style.filter = "invert(1) brightness(0.5)";
+            if (!isDark) img.style.filter = "invert(1) brightness(0.5)";
             item.appendChild(img);
-            const del = document.createElement('button'); del.className = "delete-brush"; del.innerHTML = '<i class="fas fa-times"></i>';
+            const del = document.createElement('button'); del.className = "delete-brush"; del.innerHTML = '<i class="fas fa-times ui-grey-icon"></i>';
             del.onclick = (e) => { e.stopPropagation(); brushLibrary = brushLibrary.filter(b => b.id !== brush.id); if (brushTip === brush.id) brushTip = 'round'; renderBrushLibrary(); updateBrushPreview(); };
             item.appendChild(del);
         }
         item.onclick = () => { 
             brushTip = brush.id; 
-            // FIX: Explicitly clear texture state to prevent carry-over when switching
-            brushSettings.texture = null;
-            brushSettings.textureScale = 1.0;
-            brushSettings.textureDensity = 1.0;
-            
+            brushSettings.texture = null; 
             if (brush.settings) { 
                 Object.assign(brushSettings, brush.settings); 
                 updateBrushUIFromSettings(); 
@@ -1438,8 +1493,8 @@ function updateBrushUIFromSettings() {
     document.getElementById('bs-angleJitter-val').innerText = Math.round(brushSettings.angleJitter * 100) + '%';
     document.getElementById('bs-textureDensity').value = brushSettings.textureDensity * 100;
     document.getElementById('bs-textureDensity-val').innerText = Math.round(brushSettings.textureDensity * 100) + '%';
-    document.getElementById('bs-textureScale').value = brushSettings.textureScale * 100;
-    document.getElementById('bs-textureScale-val').innerText = Math.round(brushSettings.textureScale * 100) + '%';
+    document.getElementById('bs-textureScale').value = brushSettings.textureScale;
+    document.getElementById('bs-textureScale-val').innerText = Math.round(brushSettings.textureScale) + '%';
     document.getElementById('bs-hueJitter').value = brushSettings.hueJitter * 100;
     document.getElementById('bs-hueJitter-val').innerText = Math.round(brushSettings.hueJitter * 100) + '%';
     document.getElementById('bs-satJitter').value = brushSettings.satJitter * 100;
@@ -1487,12 +1542,37 @@ function handleBrushTextureImport(e) {
     const reader = new FileReader();
     reader.onload = (event) => {
         const img = new Image();
-        img.onload = () => { brushSettings.texture = img; showToast("Texture Applied"); updateBrushPreview(); };
+        img.onload = () => { 
+            brushSettings.texture = alphaifyTexture(img); 
+            showToast("Texture Applied"); 
+            updateBrushPreview(); 
+        };
         img.src = event.target.result;
     };
     reader.readAsDataURL(file);
 }
 function clearBrushTexture() { brushSettings.texture = null; showToast("Texture Cleared"); updateBrushPreview(); }
+
+function alphaifyTexture(img) {
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    for (let i = 0; i < data.data.length; i += 4) {
+        // Calculate luminosity
+        const avg = (data.data[i] + data.data[i + 1] + data.data[i + 2]) / 3;
+        // Keep standard colors (pure white pattern) but move luminosity to alpha
+        // Darker parts of texture will be OPAQUE, lighter parts will be TRANSPARENT
+        data.data[i] = 255;
+        data.data[i + 1] = 255;
+        data.data[i + 2] = 255;
+        data.data[i + 3] = 255 - avg;
+    }
+    ctx.putImageData(data, 0, 0);
+    return canvas;
+}
 
 function updateBrushTint() {
     const brush = brushLibrary.find(b => b.id === brushTip); if (!brush || brush.type !== 'custom') { customBrushTintedCanvas = null; return; }
@@ -1531,9 +1611,9 @@ function createNewBrushFromLayer() {
 }
 
 function toggleTheme() { 
-    const isLight = document.body.classList.toggle('light-mode'); 
+    const isDark = document.body.classList.toggle('dark-mode'); 
     const toggleBtn = document.getElementById('themeToggle').querySelector('i'); 
-    if (isLight) toggleBtn.className = 'fas fa-sun'; else toggleBtn.className = 'fas fa-moon'; 
+    if (!isDark) toggleBtn.className = 'fas fa-sun'; else toggleBtn.className = 'fas fa-moon'; 
     renderBrushLibrary();
     needsFullRedraw = true; 
 }
@@ -1541,16 +1621,26 @@ function toggleTheme() {
 function togglePressure() { 
     usePressure = !usePressure; 
     const btn = document.getElementById('btn-pressure'); 
-    btn.classList.toggle('text-[#D38E3F]', usePressure); 
-    btn.classList.toggle('text-gray-500', !usePressure); 
+    if (usePressure) {
+        btn.classList.add('text-[#D38E3F]');
+        btn.classList.remove('ui-grey-icon');
+    } else {
+        btn.classList.remove('text-[#D38E3F]');
+        btn.classList.add('ui-grey-icon');
+    }
     updateBrushPreview(); 
 }
 
 function togglePressureSize() { 
     usePressureSize = !usePressureSize; 
     const btn = document.getElementById('btn-pressure-size'); 
-    btn.classList.toggle('text-[#D38E3F]', usePressureSize); 
-    btn.classList.toggle('text-gray-500', !usePressureSize); 
+    if (usePressureSize) {
+        btn.classList.add('text-[#D38E3F]');
+        btn.classList.remove('ui-grey-icon');
+    } else {
+        btn.classList.remove('text-[#D38E3F]');
+        btn.classList.add('ui-grey-icon');
+    }
     updateBrushPreview(); 
 }
 
@@ -1575,28 +1665,20 @@ function updateViewport() {
 function updateBrushSize(val) { brushSize = Math.max(1, Math.min(300, parseInt(val))); document.getElementById('sizeSlider').value = brushSize; document.getElementById('sizeVal').innerText = brushSize + 'px'; updateBrushPreview(); }
 
 function setMode(m) {
-    // Save current settings before switching
     if (mode === 'brush' || mode === 'eraser') {
         toolSettings[mode].size = brushSize;
         toolSettings[mode].opacity = opacity;
         toolSettings[mode].tip = brushTip;
         toolSettings[mode].settings = { ...brushSettings };
     }
-
     mode = m;
-    
-    // Load tool specific settings
     if (m === 'brush' || m === 'eraser') {
         const settings = toolSettings[m];
         brushSize = settings.size;
         opacity = settings.opacity;
         brushTip = settings.tip;
-        
-        // FIX: Ensure texture is explicitly cleared before loading new tool settings
         brushSettings.texture = null;
         Object.assign(brushSettings, settings.settings);
-        
-        // Update UI
         document.getElementById('sizeSlider').value = brushSize;
         document.getElementById('sizeVal').innerText = brushSize + 'px';
         document.getElementById('opacitySlider').value = opacity * 100;
@@ -1604,29 +1686,23 @@ function setMode(m) {
         updateBrushUIFromSettings();
         renderBrushLibrary();
     }
-
     if (m === 'bucket' || m === 'gradient') lastBucketTool = m;
     if (m === 'lasso' || m === 'poly-lasso') lastLassoTool = m;
     if (m === 'rect' || m === 'ellipse' || m === 'line') lastShapeTool = m;
-
     document.querySelectorAll('.tool-btn').forEach(btn => {
         btn.classList.remove('active', 'text-[#D38E3F]');
-        btn.classList.add('text-gray-500');
+        btn.classList.add('ui-grey-icon');
     });
-
     const activeBtnId = { 'brush': 'btn-brush', 'eraser': 'btn-eraser', 'smudge': 'btn-smudge', 'bucket': 'btn-bucket', 'gradient': 'btn-bucket', 'lasso': 'btn-lasso', 'poly-lasso': 'btn-lasso', 'wand': 'btn-lasso', 'rect': 'btn-shapes', 'ellipse': 'btn-shapes', 'line': 'btn-shapes' }[m];
-    if (activeBtnId) { const btn = document.getElementById(activeBtnId); btn.classList.add('active'); btn.classList.remove('text-gray-500'); }
-
+    if (activeBtnId) { const btn = document.getElementById(activeBtnId); btn.classList.add('active'); btn.classList.remove('ui-grey-icon'); }
     if (m === 'bucket') document.getElementById('bucket-icon').className = 'fas fa-fill-drip';
     if (m === 'gradient') document.getElementById('bucket-icon').className = 'fas fa-stream';
     if (m === 'rect') document.getElementById('shape-icon').className = 'far fa-square';
     if (m === 'ellipse') document.getElementById('shape-icon').className = 'far fa-circle';
     if (m === 'line') document.getElementById('shape-icon').className = 'fas fa-minus';
-
     document.getElementById('wandOptions').classList.toggle('hidden', m !== 'wand');
     document.getElementById('gradientOptions').classList.toggle('hidden', m !== 'gradient');
     document.getElementById('lassoOptions').classList.toggle('hidden', m !== 'lasso' && m !== 'poly-lasso');
-    
     updateBrushTint();
     updateBrushPreview();
 }
@@ -1674,16 +1750,21 @@ function handleKeys(e) {
 
 function clearSelection() { activeSelectionPoints = []; lassoPoints = []; maskCtx.clearRect(0, 0, INTERNAL_RES_W, INTERNAL_RES_H); document.getElementById('selectionGlobalUI').classList.replace('flex', 'hidden'); updateCursor(lastMouseData); needsFullRedraw = true; }
 function updateLassoFeather(val) { lassoFeather = parseInt(val); document.getElementById('lassoFeatherVal').innerText = val + 'px'; if (activeSelectionPoints.length > 0) generateMask(); needsFullRedraw = true; }
+
 function setupDraggable(el) {
     let nx = 0, ny = 0;
     el.addEventListener('pointerdown', (e) => {
-        if (['BUTTON', 'INPUT', 'SELECT', 'CANVAS'].includes(e.target.tagName) || e.target.closest('.brush-grid-item') || e.target.closest('#hsvBox')) return;
+        // Exclude buttons, inputs, canvas, specific grid items, and editable values from starting a drag
+        if (['BUTTON', 'INPUT', 'SELECT', 'CANVAS'].includes(e.target.tagName) || 
+            e.target.closest('.brush-grid-item') || 
+            e.target.closest('#hsvBox') || 
+            e.target.classList.contains('editable-val')) return;
+            
         bringToFront(el); el.setPointerCapture(e.pointerId); nx = e.clientX; ny = e.clientY;
         const onPointerMove = (me) => { const dx = nx - me.clientX; const dy = ny - me.clientY; nx = me.clientX; ny = me.clientY; el.style.top = (el.offsetTop - dy) + "px"; el.style.left = (el.offsetLeft - dx) + "px"; el.style.bottom = 'auto'; el.style.right = 'auto'; };
         const onPointerUp = () => { el.removeEventListener('pointermove', onPointerMove); el.removeEventListener('pointerup', onPointerUp); };
         el.addEventListener('pointermove', onPointerMove); el.addEventListener('pointerup', onPointerUp);
     });
-    el.addEventListener('pointerdown', (e) => { if (['BUTTON', 'INPUT', 'SELECT', 'CANVAS'].includes(e.target.tagName) || e.target.closest('.brush-grid-item') || e.target.closest('#hsvBox')) { bringToFront(el); } });
 }
 
 function toggleTransform() {
@@ -1760,7 +1841,7 @@ function triggerImageImport() { document.getElementById('imageInput').click(); }
 function handleImageImport(e) {
     const file = e.target.files[0]; if (!file) return; const reader = new FileReader();
     reader.onload = (event) => {
-        const img = new Image(); img.onload = () => { saveUndo(); const canvas = document.createElement('canvas'); canvas.width = INTERNAL_RES_W; canvas.height = INTERNAL_RES_H; const ctx = canvas.getContext('2d'); const scale = Math.min(INTERNAL_RES_W / img.width, INTERNAL_RES_H / img.height); ctx.drawImage(img, (INTERNAL_RES_W - img.width * scale) / 2, (INTERNAL_RES_H - img.height * scale) / 2, img.width * scale, img.height * scale);
+        const img = new Image(); img.onload = () => { saveUndo(); const canvas = document.createElement('canvas'); canvas.width = INTERNAL_RES_W; canvas.height = INTERNAL_RES_H; ctx = canvas.getContext('2d'); const scale = Math.min(INTERNAL_RES_W / img.width, INTERNAL_RES_H / img.height); ctx.drawImage(img, (INTERNAL_RES_W - img.width * scale) / 2, (INTERNAL_RES_H - img.height * scale) / 2, img.width * scale, img.height * scale);
         layers.unshift({ id: Date.now() + Math.random(), type: 'layer', name: file.name.split('.')[0] || 'Imported', canvas, ctx, visible: true, alphaLocked: false, locked: false, clippingMask: false, blendMode: 'source-over', opacity: 1.0, maskCanvas: null, maskCtx: null, parentId: null, expanded: true });
         activeIdx = 0; isMaskActive = false; refreshUI(); needsFullRedraw = true; e.target.value = ''; }; img.src = event.target.result;
     }; reader.readAsDataURL(file);
@@ -1811,10 +1892,10 @@ function refreshUI() {
             el.className = `layer-item group p-3 rounded-xl flex flex-col gap-2 transition-all cursor-pointer ${isActive ? 'active' : 'hover:bg-black/5 dark:hover:bg-white/5'} ${l.clippingMask ? 'clipping-indent' : ''} ${i === draggedIdx ? 'dragging-visual' : ''} ${depth > 0 ? 'group-indent' : ''} ${l.type === 'group' ? 'group-header-row' : ''}`;
             el.addEventListener('pointerdown', (e) => { if (e.target.closest('.vis-toggle') || e.target.closest('button') || e.target.closest('input') || e.target.closest('select') || e.target.closest('.mask-target') || e.target.closest('.expand-toggle')) return; draggedIdx = i; activeIdx = i; isMaskActive = false; el.setPointerCapture(e.pointerId); refreshUI(); });
             const blendOptions = BLEND_MODES.map(m => `<option value="${m.value}" ${l.blendMode === m.value ? 'selected' : ''}>${m.label}</option>`).join('');
-            const maskHtml = (l.maskCanvas && l.type !== 'group') ? `<div onclick="isMaskActive = true; activeIdx = ${i}; refreshUI(); event.stopPropagation()" class="mask-target w-6 h-6 rounded border ${isMaskActive && isActive ? 'border-[#D38E3F] border-2' : 'border-white/10'} bg-black overflow-hidden flex-shrink-0 cursor-pointer ml-1"><canvas id="mthumb-${i}" class="w-full h-full opacity-80"></canvas></div>` : '';
+            const maskHtml = (l.maskCanvas && l.type !== 'group') ? `<div onclick="isMaskActive = true; activeIdx = ${i}; refreshUI(); event.stopPropagation()" class="mask-target w-6 h-6 rounded border ${isMaskActive && isActive ? 'border-[#D38E3F] border-2' : 'border-black/10 dark:border-white/10'} bg-black overflow-hidden flex-shrink-0 cursor-pointer ml-1"><canvas id="mthumb-${i}" class="w-full h-full opacity-80"></canvas></div>` : '';
             const isGroup = l.type === 'group'; const icon = isGroup ? (l.expanded ? 'fa-folder-open' : 'fa-folder') : 'fa-image';
-            const expandBtn = isGroup ? `<button class="expand-toggle text-[8px] text-gray-500 w-3" onclick="toggleGroupExpanded(${i}, event)"><i class="fas ${l.expanded ? 'fa-chevron-down' : 'fa-chevron-right'}"></i></button>` : `<div class="w-3"></div>`;
-            el.innerHTML = `<div class="flex items-center gap-2"><div class="vis-toggle text-[10px] text-gray-500 w-4 flex items-center justify-center" onclick="toggleVis(${i}, event)"><i class="fas ${l.visible ? 'fa-eye' : 'fa-eye-slash'}"></i></div><div class="flex-1 min-w-0 flex items-center gap-1">${expandBtn}<div class="w-6 h-6 rounded border ${!isMaskActive && isActive ? 'border-[#D38E3F] border-2' : 'border-white/10'} bg-white/10 overflow-hidden flex-shrink-0 flex items-center justify-center">${isGroup ? `<i class="fas ${icon} text-[#D38E3F] text-[10px]"></i>` : `<canvas id="lthumb-${i}" class="w-full h-full"></canvas>`}</div>${maskHtml}<span class="layer-name text-[10px] font-bold truncate block ${isActive ? '' : 'text-gray-400'}" ondblclick="startRename(${i}, event)">${l.name}</span></div><button onclick="deleteLayer(${i}, event)" class="text-gray-600 hover:text-red-500 transition-all ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}"><i class="fas fa-trash text-[10px]"></i></button></div>${isActive ? `<div class="flex items-center gap-2" onclick="event.stopPropagation()"><span class="text-[8px] text-gray-500 uppercase font-bold">Op</span><input type="range" min="0" max="100" value="${l.opacity * 100}" class="layer-opacity-slider" onpointerdown="saveUndo()" oninput="updateLayerOpacity(${i}, this.value)"><span class="text-[8px] text-gray-500 w-6 font-mono">${Math.round(l.opacity * 100)}</span></div><div class="flex items-center justify-between gap-2"><select onchange="setBlendMode(${i}, this.value)" class="flex-1" onclick="event.stopPropagation()">${blendOptions}</select><div class="flex gap-1">${!isGroup ? `<button onclick="toggleAlphaLock(${i}, event)" class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded ${l.alphaLocked ? 'bg-[#D38E3F]/20 text-[#D38E3F]' : 'text-gray-600'}">Alpha</button>` : ''}<button onclick="toggleLayerLock(${i}, event)" class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded ${l.locked ? 'bg-red-500/20 text-red-500' : 'text-gray-600'}">Lock</button><button onclick="toggleClipping(${i}, event)" class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded ${l.clippingMask ? 'bg-[#D38E3F]/20 text-[#D38E3F]' : 'text-gray-600'}">Clip</button></div></div>` : ''}`;
+            const expandBtn = isGroup ? `<button class="expand-toggle text-[8px] ui-grey-icon w-3" onclick="toggleGroupExpanded(${i}, event)"><i class="fas ${l.expanded ? 'fa-chevron-down' : 'fa-chevron-right'}"></i></button>` : `<div class="w-3"></div>`;
+            el.innerHTML = `<div class="flex items-center gap-2"><div class="vis-toggle text-[10px] ui-grey-icon w-4 flex items-center justify-center" onclick="toggleVis(${i}, event)"><i class="fas ${l.visible ? 'fa-eye' : 'fa-eye-slash'}"></i></div><div class="flex-1 min-w-0 flex items-center gap-1">${expandBtn}<div class="w-6 h-6 rounded border ${!isMaskActive && isActive ? 'border-[#D38E3F] border-2' : 'border-black/10 dark:border-white/10'} bg-white/10 overflow-hidden flex-shrink-0 flex items-center justify-center">${isGroup ? `<i class="fas ${icon} text-[#D38E3F] text-[10px]"></i>` : `<canvas id="lthumb-${i}" class="w-full h-full"></canvas>`}</div>${maskHtml}<span class="layer-name text-[10px] font-bold truncate block ${isActive ? '' : 'ui-grey-text'}" ondblclick="startRename(${i}, event)">${l.name}</span></div><button onclick="deleteLayer(${i}, event)" class="ui-grey-icon hover:text-red-500 transition-all ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}"><i class="fas fa-trash text-[10px]"></i></button></div>${isActive ? `<div class="flex items-center gap-2" onclick="event.stopPropagation()"><span class="text-[8px] ui-grey-text uppercase font-bold">Op</span><input type="range" min="0" max="100" value="${l.opacity * 100}" class="layer-opacity-slider" onpointerdown="saveUndo()" oninput="updateLayerOpacity(${i}, this.value)"><span class="text-[8px] ui-grey-text w-6 font-mono">${Math.round(l.opacity * 100)}</span></div><div class="flex items-center justify-between gap-2"><select onchange="setBlendMode(${i}, this.value)" class="flex-1" onclick="event.stopPropagation()">${blendOptions}</select><div class="flex gap-1">${!isGroup ? `<button onclick="toggleAlphaLock(${i}, event)" class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded ${l.alphaLocked ? 'bg-[#D38E3F]/20 text-[#D38E3F]' : 'ui-grey-text'}">Alpha</button>` : ''}<button onclick="toggleLayerLock(${i}, event)" class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded ${l.locked ? 'bg-red-500/20 text-red-500' : 'ui-grey-text'}">Lock</button><button onclick="toggleClipping(${i}, event)" class="text-[8px] uppercase font-bold px-1.5 py-0.5 rounded ${l.clippingMask ? 'bg-[#D38E3F]/20 text-[#D38E3F]' : 'ui-grey-text'}">Clip</button></div></div>` : ''}`;
             list.appendChild(el); const lth = document.getElementById(`lthumb-${i}`); if (lth && l.canvas) lth.getContext('2d').drawImage(l.canvas, 0, 0, lth.width, lth.height); const mth = document.getElementById(`mthumb-${i}`); if (mth && l.maskCanvas) mth.getContext('2d').drawImage(l.maskCanvas, 0, 0, mth.width, mth.height);
             if (isGroup && l.expanded) { buildListRecursive(l.id, depth + 1); }
         });
@@ -1873,7 +1954,7 @@ function renderStack(dirtyRect = null) {
 
 function start(e) {
     if (e.pointerType === 'pen' || e.pointerType === 'mouse') { stack.setPointerCapture(e.pointerId); }
-    if (isSpaceDown) { isPanning = true; panMouseX = e.clientX; panMouseY = e.clientY; stack.style.cursor = 'grabbing'; return; }
+    if (isSpaceDown) { isPainting = false; isPanning = true; panMouseX = e.clientX; panMouseY = e.clientY; stack.style.cursor = 'grabbing'; return; }
     const layer = layers[activeIdx]; if (layer && layer.locked && mode !== 'lasso' && mode !== 'poly-lasso' && mode !== 'wand') return; if (layer && layer.type === 'group' && !['lasso', 'poly-lasso', 'wand'].includes(mode)) return;
     const pos = getPos(e); lastX = pos.x; lastY = pos.y; lastInputX = pos.x; lastInputY = pos.y;
     lastPressure = (e.pressure !== undefined && e.pressure > 0) ? e.pressure : 1.0;
@@ -2011,7 +2092,7 @@ function updateCursor(pos) {
     if (['lasso', 'poly-lasso', 'wand', 'rect', 'ellipse', 'line'].includes(mode)) { curCtx.strokeStyle = outlineColor; curCtx.lineWidth = 2; const s = 8; curCtx.beginPath(); curCtx.moveTo(mx - s, my); curCtx.lineTo(mx + s, my); curCtx.moveTo(mx, my - s); curCtx.lineTo(mx, my + s); curCtx.stroke(); }
     else if (mode === 'bucket' || mode === 'gradient') { curCtx.strokeStyle = outlineColor; curCtx.lineWidth = 2; const s = 10; curCtx.beginPath(); curCtx.moveTo(mx - s, my - s); curCtx.lineTo(mx + s, my + s); curCtx.moveTo(mx + s, my - s); curCtx.lineTo(mx - s, my + s); curCtx.stroke(); }
     else if (isTransforming) { const s = transformState; const sc = INTERNAL_RES_W / (BASE_DISPLAY_W * zoom); const getCorner = (cx, cy) => { const rx = cx * Math.cos(s.rotation) - cy * Math.sin(s.rotation); const ry = cx * Math.sin(s.rotation) + cy * Math.cos(s.rotation); return project(s.x + rx, s.y + ry); }; const cTL = getCorner(- (s.width/2) * s.scale, - (s.height/2) * s.scale); const cTR = getCorner((s.width/2) * s.scale, - (s.height/2) * s.scale); const cBR = getCorner((s.width/2) * s.scale, (s.height/2) * s.scale); const cBL = getCorner(- (s.width/2) * s.scale, (s.height/2) * s.scale); const cMidTop = getCorner(0, - (s.height/2) * s.scale); const cRot = getCorner(0, - (s.height/2) * s.scale - 60 * sc); curCtx.strokeStyle = '#D38E3F'; curCtx.lineWidth = 2; curCtx.beginPath(); curCtx.moveTo(cTL.x, cTL.y); curCtx.lineTo(cTR.x, cTR.y); curCtx.lineTo(cBR.x, cBR.y); curCtx.lineTo(cBL.x, cBL.y); curCtx.closePath(); curCtx.stroke(); curCtx.beginPath(); curCtx.moveTo(cMidTop.x, cMidTop.y); curCtx.lineTo(cRot.x, cRot.y); curCtx.stroke(); const drawHandle = (p, isCircle = false) => { curCtx.fillStyle = '#D38E3F'; curCtx.strokeStyle = 'white'; curCtx.lineWidth = 2; if (isCircle) { curCtx.beginPath(); curCtx.arc(p.x, p.y, 12, 0, Math.PI*2); curCtx.fill(); curCtx.stroke(); } else { curCtx.fillRect(p.x - 10, p.y - 10, 20, 20); curCtx.strokeRect(p.x - 10, p.y - 10, 20, 20); } }; drawHandle(cTL); drawHandle(cTR); drawHandle(cBR); drawHandle(cBL); drawHandle(cRot, true); }
-    else if (!isSpaceDown && pos.rawX >= vRect.left && pos.rawX <= vRect.right) { curCtx.save(); curCtx.translate(mx, my); curCtx.rotate((rotation + brushRotation) * Math.PI / 180); curCtx.strokeStyle = outlineColor; curCtx.lineWidth = 1; const screenRadius = (brushSize / 2) * (sRect.width / INTERNAL_RES_W); if (brushTip === 'round') { curCtx.beginPath(); curCtx.arc(0, 0, screenRadius, 0, Math.PI * 2); curCtx.stroke(); } else if (brushTip === 'flat') { curCtx.strokeRect(-screenRadius, -screenRadius/3, screenRadius*2, screenRadius*2/3); } else { const brush = brushLibrary.find(b => b.id === brushTip); if (brush && brush.canvas) { curCtx.globalAlpha = 0.5; curCtx.drawImage(brush.canvas, -screenRadius, -screenRadius, screenRadius*2, screenRadius*2); } else { curCtx.beginPath(); curCtx.arc(0, 0, screenRadius, 0, Math.PI * 2); curCtx.stroke(); } } curCtx.restore(); }
+    else if (!isSpaceDown && pos.rawX >= vRect.left && pos.rawX <= vRect.right) { curCtx.save(); curCtx.translate(mx, my); curCtx.rotate((rotation + brushRotation) * Math.PI / 180); curCtx.strokeStyle = outlineColor; curCtx.lineWidth = 1; const screenRadius = (brushSize / 2) * (sRect.width / INTERNAL_RES_W); if (brushTip === 'round' || (brushLibrary.find(b => b.id === brushTip)?.type === 'round')) { curCtx.beginPath(); curCtx.arc(0, 0, screenRadius, 0, Math.PI * 2); curCtx.stroke(); } else if (brushTip === 'flat' || (brushLibrary.find(b => b.id === brushTip)?.type === 'flat')) { curCtx.strokeRect(-screenRadius, -screenRadius/3, screenRadius*2, screenRadius*2/3); } else { const brush = brushLibrary.find(b => b.id === brushTip); if (brush && brush.canvas) { curCtx.globalAlpha = 0.5; curCtx.drawImage(brush.canvas, -screenRadius, -screenRadius, screenRadius*2, screenRadius*2); } else { curCtx.beginPath(); curCtx.arc(0, 0, screenRadius, 0, Math.PI * 2); curCtx.stroke(); } } curCtx.restore(); }
     curCtx.restore();
 }
 
@@ -2059,7 +2140,11 @@ function renderDab(ctx, x, y, size, colorString, hardness, currentFlow, angleOve
     const safeSize = Math.max(1, size); const cx = safeSize / 2, cy = safeSize / 2;
     dabBufferCanvas.width = safeSize; dabBufferCanvas.height = safeSize; dabBufferCtx.clearRect(0, 0, safeSize, safeSize);
     dabBufferCtx.save(); dabBufferCtx.translate(cx, cy); dabBufferCtx.rotate((angleOverride !== null ? angleOverride : brushRotation) * Math.PI / 180);
-    if (brushTip === 'round') {
+    
+    const brushObj = brushLibrary.find(b => b.id === brushTip) || { type: 'round' };
+    const type = brushObj.type;
+
+    if (type === 'round') {
         const rad = safeSize / 2;
         if (hardness >= 0.99) { dabBufferCtx.fillStyle = colorString; dabBufferCtx.beginPath(); dabBufferCtx.arc(0, 0, rad, 0, Math.PI * 2); dabBufferCtx.fill(); }
         else {
@@ -2067,13 +2152,12 @@ function renderDab(ctx, x, y, size, colorString, hardness, currentFlow, angleOve
             grad.addColorStop(0, colorString); grad.addColorStop(Math.max(hardness, 0.1), colorString.replace('rgb', 'rgba').replace(')', `, ${0.8 * Math.sqrt(hardness + 0.05)})`)); grad.addColorStop(1, colorString.replace('rgb', 'rgba').replace(')', `, 0)`));
             dabBufferCtx.fillStyle = grad; dabBufferCtx.beginPath(); dabBufferCtx.arc(0, 0, rad, 0, Math.PI * 2); dabBufferCtx.fill();
         }
-    } else if (brushTip === 'flat') {
+    } else if (type === 'flat') {
         dabBufferCtx.fillStyle = colorString;
         const h = Math.max(1, safeSize / 3);
         dabBufferCtx.fillRect(-safeSize/2, -h/2, safeSize, h);
     } else if (customBrushTintedCanvas) { dabBufferCtx.drawImage(customBrushTintedCanvas, -safeSize/2, -safeSize/2, safeSize, safeSize); }
-    dabBufferCtx.restore();
-
+    
     if (brushSettings.texture) { 
         dabBufferCtx.save(); 
         dabBufferCtx.globalCompositeOperation = 'destination-in'; 
@@ -2081,18 +2165,16 @@ function renderDab(ctx, x, y, size, colorString, hardness, currentFlow, angleOve
         const pattern = dabBufferCtx.createPattern(brushSettings.texture, 'repeat');
         if (pattern) {
             const matrix = new DOMMatrix();
-            // Scale and align pattern origin to top-left of global canvas for stroke continuity
-            const gx = x - cx;
-            const gy = y - cy;
-            const s = brushSettings.textureScale;
+            const s = brushSettings.textureScale / 100;
             matrix.scaleSelf(s, s);
-            matrix.translateSelf(-gx/s, -gy/s);
+            matrix.translateSelf(- (x - cx) / s, - (y - cy) / s);
             pattern.setTransform(matrix);
             dabBufferCtx.fillStyle = pattern; 
-            dabBufferCtx.fillRect(0, 0, safeSize, safeSize); 
+            dabBufferCtx.fillRect(-cx, -cy, safeSize, safeSize); 
         }
         dabBufferCtx.restore(); 
     }
+    dabBufferCtx.restore();
     ctx.save(); ctx.globalAlpha = currentFlow; ctx.drawImage(dabBufferCanvas, x - safeSize/2, y - safeSize/2); ctx.restore();
 }
 
@@ -2177,7 +2259,7 @@ function applyFilter(type) {
     else if (type === 'chroma_ab') { document.getElementById('adjTitle').innerText = 'Chromatic Aberration'; [['Spread (R/B)', 0, 50, 10, 'spread'], ['Strength', 0, 100, 100, 'strength']].forEach(s => createSlider(...s)); }
     bringToFront(document.getElementById('adjPanel')); runAdj();
 }
-function createSlider(l, min, max, v, id) { const d = document.createElement('div'); d.innerHTML = `<div class="flex justify-between mb-2 text-[9px] uppercase text-gray-500 font-bold"><span>${l}</span><span id="val-${id}">${v}</span></div><input type="range" id="adj-${id}" min="${min}" max="${max}" value="${v}" step="1" class="w-full">`; document.getElementById('adjControls').appendChild(d); d.querySelector('input').oninput = (e) => { document.getElementById(`val-${id}`).innerText = e.target.value; runAdj(); }; }
+function createSlider(l, min, max, v, id) { const d = document.createElement('div'); d.innerHTML = `<div class="flex justify-between mb-2 text-[9px] uppercase ui-grey-text font-bold"><span>${l}</span><span id="val-${id}">${v}</span></div><input type="range" id="adj-${id}" min="${min}" max="${max}" value="${v}" step="1" class="w-full">`; document.getElementById('adjControls').appendChild(d); d.querySelector('input').oninput = (e) => { document.getElementById(`val-${id}`).innerText = e.target.value; runAdj(); }; }
 function runAdj() {
     const isPreview = document.getElementById('adjPreviewToggle').checked;
     if (!isPreview) { layers[activeIdx].ctx.putImageData(origData, 0, 0); needsFullRedraw = true; return; }
